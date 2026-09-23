@@ -201,25 +201,29 @@ the response omits internal details.
 11. Authenticated session endpoints aggregate active refresh-token families and
     allow idempotent revocation of one or all families while filtering every
     operation by current user ownership.
-12. TOTP enrollment encrypts the authenticator seed with a dedicated Fernet
+12. Interview creation locks the owner-scoped Application and permits new
+    rounds only in `screening`, `interview`, or `offer`. Later terminal
+    Application transitions do not prevent completing or cancelling existing
+    Interviews.
+13. TOTP enrollment encrypts the authenticator seed with a dedicated Fernet
     key. Confirmation stores only hashes of newly generated recovery codes.
-13. Login for an MFA-enabled account returns a short-lived, opaque challenge
+14. Login for an MFA-enabled account returns a short-lived, opaque challenge
     instead of session tokens. Successful TOTP or recovery verification consumes
     the challenge and creates the device session in one transaction.
-14. Accepted TOTP counters are recorded to reject replay in the same time step.
+15. Accepted TOTP counters are recorded to reject replay in the same time step.
     Access tokens record authentication methods (`amr`) and time (`auth_time`);
     refresh-issued access tokens use `amr=["refresh"]` and cannot satisfy recent
     MFA step-up checks.
-15. OIDC authorization creates a short-lived database transaction containing
+16. OIDC authorization creates a short-lived database transaction containing
     hashes of `state`, nonce, and browser binding plus an encrypted PKCE verifier.
     The authorization request always uses Authorization Code and PKCE S256.
-16. The callback validates browser binding, discovery issuer, ID-token signature,
+17. The callback validates browser binding, discovery issuer, ID-token signature,
     algorithm, issuer, audience, authorized party, lifetime, subject, and nonce
     before consuming the transaction and issuing a local device session.
-17. External identities use immutable `(issuer, subject)` keys. Matching email
+18. External identities use immutable `(issuer, subject)` keys. Matching email
     never links an existing account; linking requires a recent authenticated
     local session. Identity changes revoke refresh sessions.
-18. Optional Redis cache-aside stores only validated public OIDC discovery and
+19. Optional Redis cache-aside stores only validated public OIDC discovery and
     JWKS documents under versioned issuer-digest keys. Every cache read is
     validated again. Misses use a bounded refresh lock; Redis errors bypass to
     the provider. An unknown cached `kid` forces one provider JWKS refresh.

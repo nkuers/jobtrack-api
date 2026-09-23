@@ -61,6 +61,13 @@ exclusion constraint protects the final invariant across processes. Scheduled
 time windows use half-open ranges, so one Interview may start exactly when the
 previous one ends.
 
+Creating an Interview also locks and validates its owner-scoped Application.
+Only `screening`, `interview`, and `offer` represent an active recruitment
+stage where a new round makes sense. The lock serializes creation against a
+concurrent Application status change. Existing Interviews remain manageable
+after rejection, withdrawal, or archival so operators can still complete or
+cancel a round without creating a dead end.
+
 ### Why synchronous SQLAlchemy?
 
 The project has bounded synchronous transactions and no representative evidence

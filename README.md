@@ -157,6 +157,8 @@ generated request/response contracts.
 - Ordinary Application metadata updates cannot change status.
 - Status change and history insertion are atomic and use `FOR UPDATE` to
   serialize concurrent transitions.
+- New Interviews can only be scheduled while their Application is in
+  `screening`, `interview`, or `offer` status.
 - Interview timestamps require a timezone and are normalized to UTC.
 - Scheduled Interviews for one user cannot overlap.
 - Redis failure does not make Dashboard or core CRUD unavailable.

@@ -179,7 +179,14 @@ function crudIteration(data) {
     "PATCH",
     `/api/v1/applications/${application.id}/status`,
     { status: "applied" },
-    "application_status",
+    "application_status_applied",
+  )) return;
+
+  if (!checkedJsonWrite(
+    "PATCH",
+    `/api/v1/applications/${application.id}/status`,
+    { status: "screening" },
+    "application_status_screening",
   )) return;
 
   const slot = (__VU * 100000) + __ITER;

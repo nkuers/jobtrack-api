@@ -204,6 +204,13 @@ def test_dashboard_aggregates_owner_scoped_business_metrics(
         status="applied",
         next_action_at=(now + timedelta(days=2)).isoformat(),
     )
+    active_response = client.patch(
+        f"/api/v1/applications/{active['id']}/status",
+        headers=auth_headers,
+        json={"status": "screening"},
+    )
+    assert active_response.status_code == 200, active_response.text
+    active = active_response.json()
     overdue = _create_application(
         client,
         auth_headers,
@@ -234,7 +241,7 @@ def test_dashboard_aggregates_owner_scoped_business_metrics(
     assert payload["company_count"] == 2
     assert payload["job_count"] == 3
     assert payload["application_status_counts"]["archived"] == 1
-    assert payload["application_status_counts"]["applied"] == 1
+    assert payload["application_status_counts"]["screening"] == 1
     assert payload["application_status_counts"]["saved"] == 1
     assert payload["applications_last_7_days"] == 3
     assert payload["offer_conversion_rate"] == 0.5
@@ -271,7 +278,19 @@ def test_business_writes_invalidate_the_owner_dashboard(
 
     company = _create_company(client, auth_headers, "Invalidation")
     job = _create_job(client, auth_headers, company["id"], "Invalidation Job")
-    application = _create_application(client, auth_headers, job["id"])
+    application = _create_application(
+        client,
+        auth_headers,
+        job["id"],
+        status="applied",
+    )
+    application_response = client.patch(
+        f"/api/v1/applications/{application['id']}/status",
+        headers=auth_headers,
+        json={"status": "screening"},
+    )
+    assert application_response.status_code == 200, application_response.text
+    application = application_response.json()
     response = client.post(
         "/api/v1/interviews",
         headers=auth_headers,
@@ -285,6 +304,7 @@ def test_business_writes_invalidate_the_owner_dashboard(
     assert invalidations == [
         ("company_service", user.id),
         ("job_service", user.id),
+        ("application_service", user.id),
         ("application_service", user.id),
         ("interview_service", user.id),
     ]

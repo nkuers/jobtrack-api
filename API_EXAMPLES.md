@@ -327,6 +327,12 @@ curl --request PATCH \
   --header "Content-Type: application/json" \
   --data '{"status":"applied"}'
 
+curl --request PATCH \
+  "http://127.0.0.1:8000/api/v1/applications/${APPLICATION_ID}/status" \
+  --header "Authorization: Bearer ${ACCESS_TOKEN}" \
+  --header "Content-Type: application/json" \
+  --data '{"status":"screening"}'
+
 curl \
   "http://127.0.0.1:8000/api/v1/applications/${APPLICATION_ID}/history" \
   --header "Authorization: Bearer ${ACCESS_TOKEN}"
@@ -337,9 +343,11 @@ application cannot be deleted until the application is deleted.
 
 ## Manage interviews
 
-Schedule an interview for an application owned by the authenticated user.
-Times must include a UTC offset; the API normalizes them to UTC. Durations may
-be between 15 and 480 minutes.
+Schedule an interview for an application owned by the authenticated user. The
+application must be in `screening`, `interview`, or `offer`; attempts from
+`saved`, `applied`, or a terminal state return `409`. Times must include a UTC
+offset; the API normalizes them to UTC. Durations may be between 15 and 480
+minutes.
 
 ```bash
 curl --request POST http://127.0.0.1:8000/api/v1/interviews \

@@ -10,6 +10,7 @@ from app.exceptions.domain import ResourceConflictError, ResourceNotFoundError
 from app.models.interview import Interview
 from app.repositories.application_repository import ApplicationRepository
 from app.repositories.interview_repository import InterviewRepository
+from app.schemas.application import ApplicationStatus
 from app.schemas.interview import (
     InterviewCreate,
     InterviewListResponse,
@@ -23,6 +24,17 @@ APPLICATION_NOT_FOUND = "Application not found"
 INTERVIEW_CONFLICT = "Interview overlaps another scheduled interview"
 INVALID_INTERVIEW_STATUS = "Invalid interview status transition"
 FEEDBACK_REQUIRES_COMPLETED = "Feedback is only allowed for completed interviews"
+APPLICATION_NOT_READY_FOR_INTERVIEW = (
+    "Application must be in screening, interview, or offer status"
+)
+
+INTERVIEW_ELIGIBLE_APPLICATION_STATUSES = frozenset(
+    {
+        ApplicationStatus.SCREENING,
+        ApplicationStatus.INTERVIEW,
+        ApplicationStatus.OFFER,
+    }
+)
 
 ALLOWED_STATUS_TRANSITIONS = {
     InterviewStatus.SCHEDULED: frozenset(
@@ -41,8 +53,16 @@ class InterviewService:
 
     @observe_business_write("interview", "create")
     def create(self, owner_id: int, data: InterviewCreate) -> Interview:
-        if self.application_repository.get_owned(data.application_id, owner_id) is None:
+        application = self.application_repository.get_owned_for_update(
+            data.application_id, owner_id
+        )
+        if application is None:
             raise ResourceNotFoundError(APPLICATION_NOT_FOUND)
+        if (
+            ApplicationStatus(application.status)
+            not in INTERVIEW_ELIGIBLE_APPLICATION_STATUSES
+        ):
+            raise ResourceConflictError(APPLICATION_NOT_READY_FOR_INTERVIEW)
         if self.repository.has_overlap(
             owner_id,
             scheduled_at=data.scheduled_at,

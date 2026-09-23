@@ -15,6 +15,7 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Timezone-aware Interview scheduling, overlap checks, and upcoming queries
 - PostgreSQL GiST exclusion constraint preventing concurrent scheduled
   Interview overlaps across API processes
+- Interview creation restricted to Applications in active recruitment stages
 - Short-TTL Dashboard cache-aside with PostgreSQL fallback and write
   invalidation
 - Real PostgreSQL/Redis integration suite covering ownership, rollback,

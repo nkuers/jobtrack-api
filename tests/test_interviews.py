@@ -1,4 +1,5 @@
 from datetime import UTC, datetime, timedelta
+from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 import pytest
@@ -12,6 +13,7 @@ from app.models.user import User
 from app.schemas.interview import InterviewCreate
 from app.services.application_service import APPLICATION_HAS_INTERVIEWS
 from app.services.interview_service import (
+    APPLICATION_NOT_READY_FOR_INTERVIEW,
     FEEDBACK_REQUIRES_COMPLETED,
     INTERVIEW_CONFLICT,
     INVALID_INTERVIEW_STATUS,
@@ -28,6 +30,7 @@ def create_application(
     client: TestClient,
     headers: dict[str, str],
     suffix: str,
+    target_status: str = "screening",
 ) -> dict:
     company = client.post(
         "/api/v1/companies",
@@ -47,10 +50,31 @@ def create_application(
     application = client.post(
         "/api/v1/applications",
         headers=headers,
-        json={"job_id": job.json()["id"], "status": "applied"},
+        json={
+            "job_id": job.json()["id"],
+            "status": "saved" if target_status in {"saved", "withdrawn"} else "applied",
+        },
     )
     assert application.status_code == 201, application.text
-    return application.json()
+    transitions = {
+        "saved": (),
+        "applied": (),
+        "screening": ("screening",),
+        "interview": ("screening", "interview"),
+        "offer": ("screening", "interview", "offer"),
+        "rejected": ("rejected",),
+        "withdrawn": ("withdrawn",),
+        "archived": ("rejected", "archived"),
+    }
+    result = application
+    for status in transitions[target_status]:
+        result = client.patch(
+            f"/api/v1/applications/{application.json()['id']}/status",
+            headers=headers,
+            json={"status": status},
+        )
+        assert result.status_code == 200, result.text
+    return result.json()
 
 
 def create_interview(
@@ -138,6 +162,87 @@ def test_create_interview_requires_owned_application_and_binds_owner(
     assert interview is not None
     assert interview.owner_id == user.id
     assert interview.scheduled_end_at == interview.scheduled_at + timedelta(hours=1)
+
+
+@pytest.mark.parametrize("status", ["screening", "interview", "offer"])
+def test_create_interview_accepts_active_recruitment_stages(
+    client: TestClient,
+    auth_headers: dict[str, str],
+    status: str,
+):
+    application = create_application(
+        client,
+        auth_headers,
+        f"Allowed {status}",
+        target_status=status,
+    )
+
+    created = create_interview(
+        client,
+        auth_headers,
+        application["id"],
+        datetime.now(UTC) + timedelta(days=2),
+    )
+
+    assert created["application_id"] == application["id"]
+
+
+@pytest.mark.parametrize(
+    "status",
+    ["saved", "applied", "rejected", "withdrawn", "archived"],
+)
+def test_create_interview_rejects_ineligible_application_stages(
+    client: TestClient,
+    auth_headers: dict[str, str],
+    status: str,
+):
+    application = create_application(
+        client,
+        auth_headers,
+        f"Rejected {status}",
+        target_status=status,
+    )
+
+    response = client.post(
+        "/api/v1/interviews",
+        headers=auth_headers,
+        json={
+            "application_id": application["id"],
+            "interview_type": "technical",
+            "scheduled_at": (datetime.now(UTC) + timedelta(days=2)).isoformat(),
+        },
+    )
+
+    assert response.status_code == 409
+    assert response.json() == {"detail": APPLICATION_NOT_READY_FOR_INTERVIEW}
+
+
+def test_terminal_application_does_not_trap_an_existing_interview(
+    client: TestClient,
+    auth_headers: dict[str, str],
+):
+    application = create_application(client, auth_headers, "Existing Interview")
+    interview = create_interview(
+        client,
+        auth_headers,
+        application["id"],
+        datetime.now(UTC) + timedelta(days=2),
+    )
+    rejected = client.patch(
+        f"/api/v1/applications/{application['id']}/status",
+        headers=auth_headers,
+        json={"status": "rejected"},
+    )
+    assert rejected.status_code == 200, rejected.text
+
+    completed = client.patch(
+        f"/api/v1/interviews/{interview['id']}",
+        headers=auth_headers,
+        json={"status": "completed", "feedback": "Process ended"},
+    )
+
+    assert completed.status_code == 200
+    assert completed.json()["status"] == "completed"
 
 
 def test_timezone_is_required_and_normalized_to_utc(
@@ -539,7 +644,9 @@ def test_interview_service_rolls_back_on_write_failure():
     service = InterviewService(db)
     service.repository = MagicMock()
     service.application_repository = MagicMock()
-    service.application_repository.get_owned.return_value = object()
+    service.application_repository.get_owned_for_update.return_value = SimpleNamespace(
+        status="screening"
+    )
     service.repository.has_overlap.return_value = False
 
     with pytest.raises(RuntimeError, match="database unavailable"):
