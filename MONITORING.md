@@ -39,7 +39,7 @@ Configure Prometheus to scrape `/metrics`:
 
 ```yaml
 scrape_configs:
-  - job_name: fastapi-production-api
+  - job_name: jobtrack-api
     metrics_path: /metrics
     static_configs:
       - targets: ["api.internal.example:8000"]
@@ -47,20 +47,20 @@ scrape_configs:
 
 The application exports:
 
-- `fastapi_production_api_http_requests_total`, labelled by method, route
+- `jobtrack_api_http_requests_total`, labelled by method, route
   template, and status code
-- `fastapi_production_api_http_request_duration_seconds`, a latency histogram
+- `jobtrack_api_http_request_duration_seconds`, a latency histogram
   labelled by method and route template
-- `fastapi_production_api_http_requests_in_progress`, labelled by method
-- `fastapi_production_api_rate_limit_decisions_total`, labelled by backend and
+- `jobtrack_api_http_requests_in_progress`, labelled by method
+- `jobtrack_api_rate_limit_decisions_total`, labelled by backend and
   the bounded outcomes `allowed`, `blocked`, `fail_open`, or `fail_closed`
-- `fastapi_production_api_rate_limit_backend_errors_total`, labelled by backend
+- `jobtrack_api_rate_limit_backend_errors_total`, labelled by backend
   and bounded operation category
-- `fastapi_production_api_outbox_messages_total`, labelled by bounded message
+- `jobtrack_api_outbox_messages_total`, labelled by bounded message
   type and outcome
-- `fastapi_production_api_outbox_failures_total`, labelled by bounded failure
+- `jobtrack_api_outbox_failures_total`, labelled by bounded failure
   category
-- `fastapi_production_api_outbox_delivery_duration_seconds`, labelled by
+- `jobtrack_api_outbox_delivery_duration_seconds`, labelled by
   bounded message type
 
 Route templates are used instead of raw URLs to bound label cardinality. Protect
@@ -76,9 +76,9 @@ a worker-writable directory before each Gunicorn start, then export it before
 Python imports the application:
 
 ```bash
-install -d -m 0750 /run/fastapi-production-api/metrics
-find /run/fastapi-production-api/metrics -type f -delete
-export PROMETHEUS_MULTIPROC_DIR=/run/fastapi-production-api/metrics
+install -d -m 0750 /run/jobtrack-api/metrics
+find /run/jobtrack-api/metrics -type f -delete
+export PROMETHEUS_MULTIPROC_DIR=/run/jobtrack-api/metrics
 uv run gunicorn -c gunicorn.conf.py app.main:app
 ```
 
@@ -109,7 +109,7 @@ Tracing is disabled by default. Enable it only after an OTLP/HTTP-compatible
 Collector is available.
 
     TRACING_ENABLED=true
-    OTEL_SERVICE_NAME=fastapi-production-api
+    OTEL_SERVICE_NAME=jobtrack-api
     OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector.internal.example:4318
     OTEL_EXPORT_TIMEOUT_SECONDS=5
     OTEL_TRACE_SAMPLE_RATIO=0.1
@@ -243,7 +243,7 @@ validation is rejected normally.
 For planned provider changes or when operators need an immediate refresh, run:
 
 ```bash
-fastapi-production-cache invalidate-oidc
+jobtrack-cache invalidate-oidc
 ```
 
 Then verify that the next request repopulates the discovery/JWKS cache from the

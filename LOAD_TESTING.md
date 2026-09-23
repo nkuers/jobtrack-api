@@ -33,6 +33,7 @@ environment configuration with every result.
 | --- | --- | --- |
 | `health` | Repeated `GET /health/live` after a readiness probe | Network and middleware baseline |
 | `authenticated` | One user/session per VU, repeated `GET /auth/me`, periodic refresh rotation | Representative authentication lifecycle |
+| `crud` | Per-VU Company → Job → Application → status → Interview writes followed by Dashboard reads | Authenticated JobTrack business path |
 
 Registration and login happen outside the tagged workload latency thresholds.
 They are still checked and visible in the k6 result. Each virtual user owns its
@@ -46,6 +47,7 @@ Start PostgreSQL and Redis, apply migrations, and start the API as described in
 ```bash
 k6 run -e PROFILE=health -e VUS=2 -e DURATION=10s load_tests/api.js
 k6 run -e PROFILE=authenticated -e VUS=5 -e DURATION=30s load_tests/api.js
+k6 run -e PROFILE=crud -e VUS=2 -e DURATION=30s load_tests/api.js
 ```
 
 PowerShell uses the same commands. The defaults target
@@ -57,7 +59,7 @@ Useful environment variables:
 | Variable | Default | Meaning |
 | --- | --- | --- |
 | `BASE_URL` | `http://127.0.0.1:8000` | API origin without a trailing slash |
-| `PROFILE` | `authenticated` | `health` or `authenticated` |
+| `PROFILE` | `authenticated` | `health`, `authenticated`, or `crud` |
 | `VUS` | `5` | Concurrent virtual users |
 | `DURATION` | `30s` | k6 duration expression |
 | `REFRESH_EVERY` | `20` | Authenticated iterations between rotations |
@@ -70,6 +72,12 @@ Validate the script without sending traffic:
 ```bash
 k6 inspect load_tests/api.js
 ```
+
+The CRUD profile intentionally exercises write limits and creates more rows.
+Use a disposable database and set both the global request limit and the
+per-user business-write limit high enough for the chosen VU count. A `429`
+under the configured policy is correct protection behavior, but fails this
+capacity-oriented profile so it cannot be mistaken for application capacity.
 
 ## Staged workload
 

@@ -16,7 +16,10 @@ DOCUMENTS = [
         "CODE_OF_CONDUCT.md",
         "CONTRIBUTING.md",
         "DATABASE_BENCHMARKS.md",
+        "DEMO.md",
+        "INTERVIEW_GUIDE.md",
         "LOAD_TESTING.md",
+        "JOBTRACK_HARDENING.md",
         "DEPLOYMENT.md",
         "DEVELOPMENT.md",
         "MONITORING.md",
@@ -26,9 +29,30 @@ DOCUMENTS = [
         "SECURITY.md",
     )
 ]
-DOCUMENTS.append(PROJECT_ROOT / "docs" / "decisions" / "0001-keep-sync-sqlalchemy.md")
+DOCUMENTS.extend(
+    PROJECT_ROOT / "docs" / "decisions" / name
+    for name in (
+        "0001-keep-sync-sqlalchemy.md",
+        "0002-service-owns-transactions.md",
+        "0003-dashboard-cache-aside.md",
+        "0004-owner-scoped-not-found.md",
+        "0005-application-status-locking.md",
+    )
+)
 MARKDOWN_LINK = re.compile(r"(?<!!)\[[^]]+\]\(([^)]+)\)")
 DOCUMENTED_API_PATHS = {
+    "/api/v1/applications",
+    "/api/v1/applications/{application_id}",
+    "/api/v1/applications/{application_id}/history",
+    "/api/v1/applications/{application_id}/status",
+    "/api/v1/companies",
+    "/api/v1/companies/{company_id}",
+    "/api/v1/dashboard",
+    "/api/v1/interviews",
+    "/api/v1/interviews/upcoming",
+    "/api/v1/interviews/{interview_id}",
+    "/api/v1/jobs",
+    "/api/v1/jobs/{job_id}",
     "/admin/users",
     "/admin/users/{user_id}/role",
     "/admin/users/{user_id}/status",
@@ -91,7 +115,10 @@ def test_readme_indexes_the_task_guides():
         "API_EXAMPLES.md",
         "ARCHITECTURE.md",
         "DATABASE_BENCHMARKS.md",
+        "DEMO.md",
+        "INTERVIEW_GUIDE.md",
         "LOAD_TESTING.md",
+        "JOBTRACK_HARDENING.md",
         "DEPLOYMENT.md",
         "DEVELOPMENT.md",
         "MONITORING.md",

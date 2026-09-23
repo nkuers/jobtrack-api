@@ -1,8 +1,8 @@
-# Architecture guide
+# JobTrack architecture guide
 
-FastAPI Production API is a synchronous, layered reference application. It
-keeps HTTP concerns, authentication, persistence, and operations separate so a
-team can replace one part without rewriting the entire service.
+JobTrack is a synchronous, layered FastAPI application for tracking companies,
+jobs, applications, status history, interviews, and dashboard actions. It keeps
+HTTP concerns, business rules, persistence, and operations separate.
 
 ## System context
 
@@ -12,7 +12,7 @@ flowchart LR
     Proxy --> App["FastAPI application"]
     App --> Auth["JWT, refresh tokens, and RBAC"]
     App --> DB[("PostgreSQL")]
-    App --> Redis[("Redis quotas")]
+    App --> Redis[("Redis quotas and Dashboard cache")]
     App --> Outbox[("PostgreSQL outbox")]
     Worker["Outbox workers"] --> Outbox
     Worker --> SMTP
@@ -29,6 +29,93 @@ request logging and rate limiting. The application owns validation,
 authorization, business transactions, and telemetry. PostgreSQL is required;
 Redis becomes a required readiness dependency when distributed rate limiting is
 enabled.
+
+## JobTrack domain model
+
+```mermaid
+erDiagram
+    USERS ||--o{ COMPANIES : owns
+    USERS ||--o{ JOBS : owns
+    USERS ||--o{ APPLICATIONS : owns
+    USERS ||--o{ INTERVIEWS : owns
+    COMPANIES ||--o{ JOBS : has
+    JOBS ||--o| APPLICATIONS : tracked_as
+    APPLICATIONS ||--o{ APPLICATION_STATUS_HISTORY : records
+    APPLICATIONS ||--o{ INTERVIEWS : schedules
+
+    COMPANIES {
+        int id PK
+        int owner_id FK
+        string name
+        string industry
+        datetime created_at
+    }
+    JOBS {
+        int id PK
+        int owner_id FK
+        int company_id FK
+        string title
+        string status
+        bigint salary_min
+        bigint salary_max
+    }
+    APPLICATIONS {
+        int id PK
+        int owner_id FK
+        int job_id FK
+        string status
+        int priority
+        date applied_at
+        datetime next_action_at
+    }
+    APPLICATION_STATUS_HISTORY {
+        int id PK
+        int application_id FK
+        string from_status
+        string to_status
+        datetime changed_at
+    }
+    INTERVIEWS {
+        int id PK
+        int owner_id FK
+        int application_id FK
+        string interview_type
+        string status
+        datetime scheduled_at
+        int duration_minutes
+    }
+```
+
+The repeated `owner_id` is intentional. It lets every public query enforce the
+tenant boundary directly instead of trusting a previously loaded parent.
+
+## Authenticated business request flow
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant M as Middleware
+    participant A as Auth dependency
+    participant R as Router
+    participant S as Service
+    participant P as Repository
+    participant DB as PostgreSQL
+    participant RC as Redis
+
+    C->>M: Request + Bearer token + optional X-Request-ID
+    M->>M: Security headers, rate limits, request context
+    M->>A: Resolve current user
+    A->>DB: User lookup
+    A-->>R: Authenticated User
+    R->>S: Validated schema + owner_id
+    S->>P: Business operation
+    P->>DB: Owner-scoped SQL / optional row lock
+    DB-->>S: Rows or constraint result
+    S->>DB: Commit or rollback
+    S-->>RC: Best-effort Dashboard invalidation
+    S-->>R: Domain result
+    R-->>C: Response + X-Request-ID
+```
 
 ## Source layout and responsibilities
 

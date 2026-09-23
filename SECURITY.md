@@ -6,14 +6,12 @@ Security fixes are provided for the latest published minor release line.
 
 | Version | Security support |
 | --- | --- |
-| `1.2.x` | Supported |
-| `1.1.x` | Not supported |
-| `1.0.x` | Not supported |
-| `< 1.0` | Not supported |
+| `1.3.x` | Supported |
+| `<= 1.2` | Not supported |
 
 The unreleased `main` branch may contain work intended for the next minor
-release and is not a published security-support line. When `v1.3.0` is
-released, the supported line moves to `1.3.x` unless the project explicitly
+release and is not a published security-support line. When a new minor line is
+released, support moves to it unless the project explicitly
 announces extended support for an older line.
 
 Security fixes are applied to the latest supported patch release. Upgrade to
@@ -26,9 +24,9 @@ pull requests.
 
 Use one of these private channels:
 
-1. [Open a private GitHub security advisory](https://github.com/HoungDev/fastapi-production-api/security/advisories/new), if private vulnerability reporting is enabled.
-2. Email `chukafe0401@gmail.com` with the subject
-   `Security report: fastapi-production-api`.
+1. [Open a private GitHub security advisory](https://github.com/nkuers/jobtrack-api/security/advisories/new), if private vulnerability reporting is enabled.
+2. Email `3287049405@qq.com` with the subject
+   `Security report: jobtrack-api`.
 
 Include:
 

@@ -34,6 +34,6 @@ Maintainers may edit or remove comments, commits, issues, discussions, or pull
 requests that violate this Code of Conduct. Repeated or serious violations may
 result in a temporary or permanent ban from project spaces.
 
-Report conduct concerns privately to `chukafe0401@gmail.com`. Include relevant
+Report conduct concerns privately to `3287049405@qq.com`. Include relevant
 links and context, but do not send unnecessary personal or sensitive data.
 Reports will be reviewed as privately and promptly as practical.

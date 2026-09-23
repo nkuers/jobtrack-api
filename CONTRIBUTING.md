@@ -27,8 +27,8 @@ are ready for community implementation.
 - Docker, or a local PostgreSQL server
 
 ```bash
-git clone https://github.com/HoungDev/fastapi-production-api.git
-cd fastapi-production-api
+git clone https://github.com/nkuers/jobtrack-api.git
+cd jobtrack-api
 python scripts/dev.py setup
 ```
 

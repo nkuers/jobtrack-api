@@ -214,6 +214,188 @@ Example response:
 
 Missing, malformed, expired, or otherwise invalid access tokens return `401`.
 
+## Manage companies
+
+Create a company owned by the authenticated user. Ownership always comes from
+the access token; clients cannot submit `owner_id`.
+
+```bash
+curl --request POST http://127.0.0.1:8000/api/v1/companies \
+  --header "Authorization: Bearer ${ACCESS_TOKEN}" \
+  --header "Content-Type: application/json" \
+  --data '{"name":"Acme","website":"https://example.com/careers","industry":"Technology","location":"Shanghai","notes":"Target company"}'
+```
+
+List and filter the current user's companies:
+
+```bash
+curl "http://127.0.0.1:8000/api/v1/companies?keyword=acme&industry=Technology&page=1&page_size=20" \
+  --header "Authorization: Bearer ${ACCESS_TOKEN}"
+```
+
+The list response contains `items`, `total`, `page`, and `page_size`. Company
+names are unique per user after trimming and case normalization. Reading,
+updating, or deleting a missing company or another user's company returns the
+same `404` response.
+
+```bash
+COMPANY_ID=1
+
+curl --request PATCH \
+  "http://127.0.0.1:8000/api/v1/companies/${COMPANY_ID}" \
+  --header "Authorization: Bearer ${ACCESS_TOKEN}" \
+  --header "Content-Type: application/json" \
+  --data '{"location":"Beijing","notes":null}'
+
+curl --request DELETE \
+  "http://127.0.0.1:8000/api/v1/companies/${COMPANY_ID}" \
+  --header "Authorization: Bearer ${ACCESS_TOKEN}"
+```
+
+## Manage jobs
+
+Salary amounts use integer minor currency units. For example, `2000000` with
+`CNY` means CNY 20,000.00 when the currency uses two decimal places.
+
+```bash
+curl --request POST http://127.0.0.1:8000/api/v1/jobs \
+  --header "Authorization: Bearer ${ACCESS_TOKEN}" \
+  --header "Content-Type: application/json" \
+  --data "{\"company_id\":${COMPANY_ID},\"title\":\"Backend Engineer\",\"employment_type\":\"full_time\",\"work_mode\":\"hybrid\",\"location\":\"Shanghai\",\"salary_min\":2000000,\"salary_max\":3000000,\"salary_currency\":\"CNY\"}"
+```
+
+The referenced company must belong to the authenticated user. List jobs with
+owner-scoped filters and a sort-field whitelist:
+
+```bash
+curl "http://127.0.0.1:8000/api/v1/jobs?company_id=${COMPANY_ID}&status=open&work_mode=hybrid&sort_by=salary_min&sort_order=asc&page=1&page_size=20" \
+  --header "Authorization: Bearer ${ACCESS_TOKEN}"
+```
+
+```bash
+JOB_ID=1
+
+curl --request PATCH "http://127.0.0.1:8000/api/v1/jobs/${JOB_ID}" \
+  --header "Authorization: Bearer ${ACCESS_TOKEN}" \
+  --header "Content-Type: application/json" \
+  --data '{"status":"paused","work_mode":"remote"}'
+
+curl --request DELETE "http://127.0.0.1:8000/api/v1/jobs/${JOB_ID}" \
+  --header "Authorization: Bearer ${ACCESS_TOKEN}"
+```
+
+A company with jobs cannot be deleted. Delete or move its jobs first; otherwise
+the company deletion endpoint returns `409`.
+
+## Manage applications
+
+Create one application per job. New records may start as `saved` or `applied`;
+when an application first enters `applied`, the API defaults `applied_at` to
+the current UTC date if it was omitted.
+
+```bash
+curl --request POST http://127.0.0.1:8000/api/v1/applications \
+  --header "Authorization: Bearer ${ACCESS_TOKEN}" \
+  --header "Content-Type: application/json" \
+  --data "{\"job_id\":${JOB_ID},\"status\":\"saved\",\"priority\":4,\"deadline\":\"2026-10-15\",\"next_action_at\":\"2026-09-25T09:00:00+08:00\",\"notes\":\"Tailor the resume\"}"
+```
+
+List the current user's applications with owner-scoped filters and a
+sort-field whitelist:
+
+```bash
+curl "http://127.0.0.1:8000/api/v1/applications?company_id=${COMPANY_ID}&status=applied&priority=4&sort_by=next_action_at&sort_order=asc&page=1&page_size=20" \
+  --header "Authorization: Bearer ${ACCESS_TOKEN}"
+```
+
+Metadata and status use separate endpoints so an ordinary update cannot bypass
+the status machine. Status changes and their history entries commit in the
+same database transaction.
+
+```bash
+APPLICATION_ID=1
+
+curl --request PATCH \
+  "http://127.0.0.1:8000/api/v1/applications/${APPLICATION_ID}" \
+  --header "Authorization: Bearer ${ACCESS_TOKEN}" \
+  --header "Content-Type: application/json" \
+  --data '{"priority":5,"notes":"Recruiter replied"}'
+
+curl --request PATCH \
+  "http://127.0.0.1:8000/api/v1/applications/${APPLICATION_ID}/status" \
+  --header "Authorization: Bearer ${ACCESS_TOKEN}" \
+  --header "Content-Type: application/json" \
+  --data '{"status":"applied"}'
+
+curl \
+  "http://127.0.0.1:8000/api/v1/applications/${APPLICATION_ID}/history" \
+  --header "Authorization: Bearer ${ACCESS_TOKEN}"
+```
+
+Invalid transitions and duplicate applications return `409`. A job with an
+application cannot be deleted until the application is deleted.
+
+## Manage interviews
+
+Schedule an interview for an application owned by the authenticated user.
+Times must include a UTC offset; the API normalizes them to UTC. Durations may
+be between 15 and 480 minutes.
+
+```bash
+curl --request POST http://127.0.0.1:8000/api/v1/interviews \
+  --header "Authorization: Bearer ${ACCESS_TOKEN}" \
+  --header "Content-Type: application/json" \
+  --data "{\"application_id\":${APPLICATION_ID},\"interview_type\":\"technical\",\"scheduled_at\":\"2026-10-08T14:00:00+08:00\",\"duration_minutes\":60,\"meeting_url\":\"https://meet.example.com/round-1\"}"
+```
+
+Scheduled interviews for the same user cannot overlap. Adjacent interviews
+whose end and start times are equal are allowed. List all future scheduled
+interviews in ascending time order:
+
+```bash
+curl "http://127.0.0.1:8000/api/v1/interviews/upcoming?limit=20" \
+  --header "Authorization: Bearer ${ACCESS_TOKEN}"
+```
+
+Complete an interview and add optional feedback in one update, or set its
+status to `cancelled`. Completed and cancelled interviews cannot transition
+back to `scheduled`.
+
+```bash
+INTERVIEW_ID=1
+
+curl --request PATCH \
+  "http://127.0.0.1:8000/api/v1/interviews/${INTERVIEW_ID}" \
+  --header "Authorization: Bearer ${ACCESS_TOKEN}" \
+  --header "Content-Type: application/json" \
+  --data '{"status":"completed","feedback":"Strong technical discussion"}'
+```
+
+An application with interviews cannot be deleted until its interviews are
+deleted.
+
+## View the dashboard
+
+Read the current user's owner-scoped summary:
+
+```bash
+curl http://127.0.0.1:8000/api/v1/dashboard \
+  --header "Authorization: Bearer ${ACCESS_TOKEN}"
+```
+
+The response includes company and job totals, a count for every application
+status, applications created in the last seven days, Offer conversion rate,
+the next seven days of scheduled interviews, overdue actions, and actions due
+in the next seven days. Lists are time ordered and capped at 20 items.
+
+Offer conversion is the number of applied applications that have ever reached
+`offer`, divided by all applications with an `applied_at` date. An archived
+offer therefore remains part of the numerator.
+
+The aggregate uses a short-lived per-user Redis cache. Successful writes to
+companies, jobs, applications, or interviews invalidate only that user's
+entry. If Redis is unavailable, the endpoint recomputes from PostgreSQL.
+
 ## Rotate a refresh token
 
 ```bash

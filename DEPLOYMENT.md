@@ -39,7 +39,7 @@ release migrations, secrets, ingress, and restricted metrics exposure.
 Build an immutable image from a reviewed tag or commit:
 
 ```bash
-docker build --pull --tag fastapi-production-api:<version> .
+docker build --pull --tag jobtrack-api:<version> .
 ```
 
 The runtime image does not contain the source checkout, `uv`, test tools, or an
@@ -48,14 +48,14 @@ separate release task before starting application replicas:
 
 ```bash
 docker run --rm --env-file .env \
-  fastapi-production-api:<version> alembic upgrade head
+  jobtrack-api:<version> alembic upgrade head
 
-docker run --detach --name fastapi-production-api \
+docker run --detach --name jobtrack-api \
   --env-file .env \
   --publish 8000:8000 \
   --read-only --tmpfs /tmp \
   --cap-drop ALL --security-opt no-new-privileges:true \
-  fastapi-production-api:<version>
+  jobtrack-api:<version>
 ```
 
 Ensure database, Redis, SMTP, OIDC, and telemetry hostnames in `.env` resolve
@@ -81,8 +81,8 @@ Create a dedicated, unprivileged service account. Do not run the API as root.
 ## 2. Install the application
 
 ```bash
-git clone https://github.com/HoungDev/fastapi-production-api.git
-cd fastapi-production-api
+git clone https://github.com/nkuers/jobtrack-api.git
+cd jobtrack-api
 git checkout <release-tag>
 uv sync --locked --no-dev
 ```
@@ -110,7 +110,7 @@ DEBUG=false
 DATABASE_URL=postgresql+psycopg://user:strong-password@database-host/app
 SECRET_KEY=<generated-secret>
 JWT_AUDIENCE=fastapi-client
-JWT_ISSUER=fastapi-production-api
+JWT_ISSUER=jobtrack-api
 CORS_ORIGINS=https://your-frontend.example
 REDIS_URL=rediss://app:<password>@redis.internal.example:6379/0
 RATE_LIMIT_BACKEND=redis
@@ -135,7 +135,7 @@ OIDC_CLIENT_SECRET=<provider-client-secret>
 OIDC_REDIRECT_URI=https://api.your-domain.example/auth/oidc/callback
 OIDC_TRANSACTION_ENCRYPTION_KEY=<dedicated-fernet-key>
 TRACING_ENABLED=false
-OTEL_SERVICE_NAME=fastapi-production-api
+OTEL_SERVICE_NAME=jobtrack-api
 OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector.internal.example:4318
 OTEL_EXPORT_TIMEOUT_SECONDS=5
 OTEL_TRACE_SAMPLE_RATIO=0.1
@@ -222,7 +222,7 @@ A safe deployment separates schema changes from worker startup:
 2. Install the reviewed release tag or immutable commit.
 3. Apply migrations once as a dedicated release step.
 4. Start or roll API processes.
-5. Start one or more `fastapi-production-worker` processes after the outbox
+5. Start one or more `jobtrack-worker` processes after the outbox
    migration is present.
 6. Wait for `/health/ready` before sending traffic.
 7. Smoke-test authentication and operational endpoints.
@@ -249,7 +249,7 @@ curl --fail http://127.0.0.1:8000/metrics
 
 ## 6. Configure systemd
 
-Create `/etc/systemd/system/fastapi-production-api.service`:
+Create `/etc/systemd/system/jobtrack-api.service`:
 
 ```ini
 [Unit]
@@ -261,12 +261,12 @@ Wants=network-online.target
 Type=notify
 User=fastapi
 Group=fastapi
-WorkingDirectory=/opt/fastapi-production-api
-EnvironmentFile=/opt/fastapi-production-api/.env
-Environment=PROMETHEUS_MULTIPROC_DIR=/run/fastapi-production-api/metrics
-RuntimeDirectory=fastapi-production-api
-ExecStartPre=/usr/bin/install -d -m 0750 /run/fastapi-production-api/metrics
-ExecStartPre=/usr/bin/find /run/fastapi-production-api/metrics -type f -delete
+WorkingDirectory=/opt/jobtrack-api
+EnvironmentFile=/opt/jobtrack-api/.env
+Environment=PROMETHEUS_MULTIPROC_DIR=/run/jobtrack-api/metrics
+RuntimeDirectory=jobtrack-api
+ExecStartPre=/usr/bin/install -d -m 0750 /run/jobtrack-api/metrics
+ExecStartPre=/usr/bin/find /run/jobtrack-api/metrics -type f -delete
 ExecStart=/home/fastapi/.local/bin/uv run gunicorn -c gunicorn.conf.py app.main:app
 Restart=on-failure
 RestartSec=5
@@ -282,8 +282,8 @@ Adjust paths and the service account for your server, then enable the unit:
 
 ```bash
 sudo systemctl daemon-reload
-sudo systemctl enable --now fastapi-production-api
-sudo systemctl status fastapi-production-api
+sudo systemctl enable --now jobtrack-api
+sudo systemctl status jobtrack-api
 ```
 
 ## 7. Configure Nginx
@@ -346,8 +346,8 @@ Redirect HTTP to HTTPS and verify certificate renewal.
 ## 9. Operate the service
 
 ```bash
-journalctl -u fastapi-production-api -f
-sudo systemctl restart fastapi-production-api
+journalctl -u jobtrack-api -f
+sudo systemctl restart jobtrack-api
 ```
 
 Set `RATE_LIMIT_BACKEND=redis` for shared limits across workers or hosts. Redis
@@ -360,9 +360,9 @@ database URL, SMTP settings, and `OUTBOX_ENCRYPTION_KEY` as the API:
 
 ```ini
 [Service]
-WorkingDirectory=/opt/fastapi-production-api
-EnvironmentFile=/opt/fastapi-production-api/.env
-ExecStart=/opt/fastapi-production-api/.venv/bin/fastapi-production-worker
+WorkingDirectory=/opt/jobtrack-api
+EnvironmentFile=/opt/jobtrack-api/.env
+ExecStart=/opt/jobtrack-api/.venv/bin/jobtrack-worker
 Restart=on-failure
 TimeoutStopSec=40
 ```
@@ -390,7 +390,7 @@ after the OTLP Collector endpoint is reachable.
 Recommended production configuration:
 
     TRACING_ENABLED=true
-    OTEL_SERVICE_NAME=fastapi-production-api
+    OTEL_SERVICE_NAME=jobtrack-api
     OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector.internal.example:4318
     OTEL_EXPORT_TIMEOUT_SECONDS=5
     OTEL_TRACE_SAMPLE_RATIO=0.1
@@ -476,13 +476,13 @@ normal key and algorithm checks.
 For an operator-controlled refresh, invalidate only the configured issuer:
 
 ```bash
-fastapi-production-cache invalidate-oidc
+jobtrack-cache invalidate-oidc
 ```
 
 When running from the source checkout, the equivalent command is:
 
 ```bash
-uv run fastapi-production-cache invalidate-oidc
+uv run jobtrack-cache invalidate-oidc
 ```
 
 Manual invalidation removes only this application's discovery and JWKS entries

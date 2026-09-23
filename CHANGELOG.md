@@ -8,6 +8,17 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- JobTrack Companies, Jobs, Applications, status history, Interviews, and
+  owner-scoped Dashboard domain
+- Explicit Application state machine with atomic history and concurrent
+  transition serialization
+- Timezone-aware Interview scheduling, overlap checks, and upcoming queries
+- Short-TTL Dashboard cache-aside with PostgreSQL fallback and write
+  invalidation
+- Real PostgreSQL/Redis integration suite covering ownership, rollback,
+  concurrency, caching, and failure behavior
+- JobTrack architecture, ADRs, demo tooling, interview guide, query-plan audit,
+  and authenticated CRUD load-test profile
 - Multi-stage production container image with locked runtime-only dependencies,
   non-root execution, liveness healthcheck, Compose migrations, and CI smoke tests
 - Explicit trusted-proxy IP/CIDR allowlisting for Uvicorn client-address
@@ -132,7 +143,7 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - GitHub Actions CI
 - Initial deployment and community documentation
 
-[Unreleased]: https://github.com/HoungDev/fastapi-production-api/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/nkuers/jobtrack-api/compare/v1.2.0...HEAD
 [1.2.0]: https://github.com/HoungDev/fastapi-production-api/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/HoungDev/fastapi-production-api/compare/v1.0.1...v1.1.0
 [1.0.1]: https://github.com/HoungDev/fastapi-production-api/compare/v1.0.0...v1.0.1

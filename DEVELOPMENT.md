@@ -49,8 +49,15 @@ python scripts/dev.py serve
 ```
 
 Open <http://127.0.0.1:8000/docs>. To create a local user, call `POST
-/register/` from Swagger UI; the repository intentionally does not ship a
-shared demo password.
+/register/` from Swagger UI. An optional demonstration dataset is created only
+after an explicit, local-only command:
+
+```bash
+python scripts/dev.py demo-data --confirm
+```
+
+The script refuses production and non-local databases. See [DEMO.md](DEMO.md)
+for the disposable credentials and walkthrough.
 
 To exercise the production image locally, start the complete Compose stack:
 
@@ -69,14 +76,14 @@ Generate a dedicated Fernet key, set `EMAIL_DELIVERY_MODE=outbox`, configure
 SMTP, apply migrations, and start a worker in a second terminal:
 
 ```bash
-uv run fastapi-production-worker
+uv run jobtrack-worker
 ```
 
 Start additional identical processes to test horizontal claims. For one
 deterministic batch without polling, use:
 
 ```bash
-uv run fastapi-production-worker --once
+uv run jobtrack-worker --once
 ```
 
 Workers stop claiming on `SIGTERM`/`SIGINT`. They finish in-flight work within
@@ -91,13 +98,40 @@ missing or different from the key used to enqueue pending payloads.
 | `python scripts/dev.py db-up` | Start PostgreSQL and Redis and wait until healthy |
 | `python scripts/dev.py stack-up` | Build and start the complete containerized stack |
 | `python scripts/dev.py db-down` | Stop Compose services without deleting data |
+| `python scripts/dev.py demo-data --confirm` | Explicitly create local JobTrack demo data |
 | `python scripts/dev.py migrate` | Apply pending Alembic migrations |
+| `python scripts/dev.py test` | Start, migrate, and test against isolated PostgreSQL |
 | `python scripts/dev.py serve` | Run Uvicorn with auto-reload |
 | `python scripts/dev.py check` | Run lint, format check, migrations, tests, audit, and build |
 
 The helper is a convenience layer. Individual commands remain available for
 focused work, for example `uv run pytest tests/test_login.py` or `uv run ruff
 format .`.
+
+## Isolated test database
+
+Run the complete test suite with:
+
+```bash
+python scripts/dev.py test
+```
+
+This starts a separate `postgres-test` Compose service on port 5433, applies
+Alembic migrations to `fastapi_test`, and then runs pytest. Tests refuse to use
+a database unless its name is `test` or ends in `_test`, truncate all
+application tables between test cases, and recreate only the standard
+administrator fixture. They never use the development database configured by
+`DATABASE_URL`.
+
+To use an existing PostgreSQL test database instead, export
+`TEST_DATABASE_URL` and run:
+
+```bash
+python scripts/dev.py test --skip-docker
+```
+
+The database must already exist, its name must be `test` or end in `_test`, and
+the configured user must be allowed to migrate and truncate it.
 
 To run the real Redis concurrency and TTL tests against the local Compose
 service in PowerShell:
@@ -185,7 +219,7 @@ behavior is unchanged while `TRACING_ENABLED=false`.
 To send traces to a local OTLP/HTTP-compatible Collector, configure:
 
     TRACING_ENABLED=true
-    OTEL_SERVICE_NAME=fastapi-production-api
+    OTEL_SERVICE_NAME=jobtrack-api
     OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
     OTEL_EXPORT_TIMEOUT_SECONDS=5
     OTEL_TRACE_SAMPLE_RATIO=1.0
@@ -207,6 +241,44 @@ authorization codes, state, nonce, PKCE values, or sensitive query strings.
 Transactional outbox propagation stores only bounded W3C `traceparent` and
 `tracestate`. Do not persist W3C baggage or application payload data as trace
 metadata.
+
+## Dashboard cache
+
+The authenticated `GET /api/v1/dashboard` endpoint uses cache-aside Redis
+caching for its owner-scoped aggregate result. Enable it with:
+
+```env
+DASHBOARD_CACHE_BACKEND=redis
+DASHBOARD_CACHE_TTL_SECONDS=60
+DASHBOARD_CACHE_MAX_BYTES=262144
+```
+
+Cache keys contain a version and an HMAC-SHA256 digest derived from the user
+ID; they never expose the raw ID. There is exactly one bounded-TTL entry per
+user. Successful Company, Job, Application, and Interview writes invalidate
+that user's entry after the database commit.
+
+Redis is only an optimization. Read, write, and invalidation failures fall
+back to PostgreSQL and never roll back an already committed business write.
+Set `DASHBOARD_CACHE_BACKEND=none` to disable this cache. Metrics use only the
+bounded operation outcome as a label and never use user IDs.
+
+## Business write limits
+
+JobTrack Company, Job, Application, and Interview mutations have an additional
+authenticated-user quota:
+
+```env
+BUSINESS_WRITE_RATE_LIMIT=30
+BUSINESS_WRITE_RATE_LIMIT_WINDOW_SECONDS=60
+BUSINESS_WRITE_RATE_LIMIT_FAILURE_MODE=open
+```
+
+This is separate from the client-address middleware limit. Memory mode is
+process-local; configure `RATE_LIMIT_BACKEND=redis` for a quota shared by all
+workers. Redis keys use the existing rate-limit HMAC secret and do not expose
+user IDs. `open` preserves core writes during a Redis outage; use `closed` only
+when rejecting writes is preferable to temporarily reduced abuse protection.
 
 ## OIDC discovery and JWKS cache
 
@@ -244,7 +316,7 @@ algorithm, signature, audience, and claim validation remain unchanged.
 To invalidate the discovery and JWKS entries for only the configured issuer:
 
 ```bash
-uv run fastapi-production-cache invalidate-oidc
+uv run jobtrack-cache invalidate-oidc
 ```
 
 The command does not scan or flush Redis globally. Cache keys are versioned,

@@ -2,11 +2,11 @@ blank_issues_enabled: false
 
 contact_links:
   - name: GitHub Discussions
-    url: https://github.com/HoungDev/fastapi-production-api/discussions
+    url: https://github.com/nkuers/jobtrack-api/discussions
     about: Ask usage questions and discuss ideas before they become scoped issues.
   - name: Security policy
-    url: https://github.com/HoungDev/fastapi-production-api/security/policy
+    url: https://github.com/nkuers/jobtrack-api/security/policy
     about: Read the private reporting instructions for security vulnerabilities.
   - name: Documentation
-    url: https://github.com/HoungDev/fastapi-production-api#readme
+    url: https://github.com/nkuers/jobtrack-api#readme
     about: Review setup, limitations, and links to detailed guides.

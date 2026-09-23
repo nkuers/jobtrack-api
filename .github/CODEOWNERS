@@ -1,19 +1,19 @@
 # Default repository owner
-* @HoungDev
+* @nkuers
 
 # Security-sensitive application code
-/src/app/auth/ @HoungDev
-/src/app/core/ @HoungDev
-/src/app/middlewares/ @HoungDev
-/src/app/services/ @HoungDev
-/src/app/models/ @HoungDev
+/src/app/auth/ @nkuers
+/src/app/core/ @nkuers
+/src/app/middlewares/ @nkuers
+/src/app/services/ @nkuers
+/src/app/models/ @nkuers
 
 # Database schema and migrations
-/alembic/ @HoungDev
+/alembic/ @nkuers
 
 # CI, dependency, and release governance
-/.github/ @HoungDev
-/pyproject.toml @HoungDev
-/uv.lock @HoungDev
-/SECURITY.md @HoungDev
-/RELEASE_CHECKLIST.md @HoungDev
+/.github/ @nkuers
+/pyproject.toml @nkuers
+/uv.lock @nkuers
+/SECURITY.md @nkuers
+/RELEASE_CHECKLIST.md @nkuers
