@@ -257,6 +257,12 @@ a write bypasses the Service layer. See
 Production releases should run migrations once before starting new application
 workers. Do not let every worker race to apply schema changes.
 
+Production configuration requires Redis-backed global and business-write rate
+limits with fail-closed outage policies. Process-local counters and fail-open
+behavior remain development tools, not production fallbacks. This keeps quotas
+stable as replicas scale and aligns Redis failure with readiness. See
+[ADR 0008](docs/decisions/0008-production-rate-limit-policy.md).
+
 The production persistence path remains synchronous for v1.3.0. The asyncpg
 engine under `benchmarks/` exists only for controlled comparison and preserves
 equivalent SQL and transaction boundaries. It is not an alternate application

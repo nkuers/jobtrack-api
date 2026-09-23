@@ -277,8 +277,12 @@ BUSINESS_WRITE_RATE_LIMIT_FAILURE_MODE=open
 This is separate from the client-address middleware limit. Memory mode is
 process-local; configure `RATE_LIMIT_BACKEND=redis` for a quota shared by all
 workers. Redis keys use the existing rate-limit HMAC secret and do not expose
-user IDs. `open` preserves core writes during a Redis outage; use `closed` only
-when rejecting writes is preferable to temporarily reduced abuse protection.
+user IDs. In development, `open` preserves core writes during a Redis outage;
+use `closed` to exercise the production failure behavior.
+
+These relaxed modes are for development and failure-path testing. With
+`ENVIRONMENT=production`, startup requires the Redis backend and both failure
+modes set to `closed`.
 
 ## OIDC discovery and JWKS cache
 

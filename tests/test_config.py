@@ -217,6 +217,54 @@ def test_production_rejects_rate_limit_placeholder_secret():
         )
 
 
+def test_production_requires_shared_redis_rate_limiting():
+    with pytest.raises(ValueError, match="RATE_LIMIT_BACKEND must be redis"):
+        Settings(
+            DATABASE_URL="sqlite:///test.db",
+            SECRET_KEY="a" * 48,
+            ENVIRONMENT="production",
+            _env_file=None,
+        )
+
+
+@pytest.mark.parametrize(
+    ("global_failure_mode", "business_failure_mode"),
+    (("open", "closed"), ("closed", "open"), ("open", "open")),
+)
+def test_production_requires_fail_closed_rate_limit_policies(
+    global_failure_mode: str,
+    business_failure_mode: str,
+):
+    with pytest.raises(ValueError, match="failure modes must be closed"):
+        Settings(
+            DATABASE_URL="sqlite:///test.db",
+            SECRET_KEY="a" * 48,
+            ENVIRONMENT="production",
+            RATE_LIMIT_BACKEND="redis",
+            REDIS_URL="rediss://redis.example:6379/0",
+            RATE_LIMIT_KEY_SECRET="r" * 48,
+            RATE_LIMIT_FAILURE_MODE=global_failure_mode,
+            BUSINESS_WRITE_RATE_LIMIT_FAILURE_MODE=business_failure_mode,
+            _env_file=None,
+        )
+
+
+def test_production_accepts_shared_fail_closed_rate_limiting():
+    configured = Settings(
+        DATABASE_URL="sqlite:///test.db",
+        SECRET_KEY="a" * 48,
+        ENVIRONMENT="production",
+        RATE_LIMIT_BACKEND="redis",
+        REDIS_URL="rediss://redis.example:6379/0",
+        RATE_LIMIT_KEY_SECRET="r" * 48,
+        RATE_LIMIT_FAILURE_MODE="closed",
+        BUSINESS_WRITE_RATE_LIMIT_FAILURE_MODE="closed",
+        _env_file=None,
+    )
+
+    assert configured.RATE_LIMIT_BACKEND == "redis"
+
+
 def test_rate_limit_numeric_settings_are_bounded():
     with pytest.raises(ValueError):
         Settings(

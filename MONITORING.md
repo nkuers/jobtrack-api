@@ -19,6 +19,8 @@ compatibility aliases.
 With `RATE_LIMIT_BACKEND=redis`, readiness includes separate `database` and
 `redis` checks and returns `503` if either is unavailable. Redis never affects
 liveness, which prevents dependency incidents from causing restart loops.
+Production configuration also requires both limiter failure modes to be
+`closed`, so this readiness dependency matches request behavior.
 
 Example Kubernetes probes:
 
@@ -172,8 +174,8 @@ service-level objectives for a specific deployment.
 1. Check the `redis` readiness result and the configured outage policy.
 2. Inspect Redis DNS, TLS, credentials, connection limits, and latency without
    logging the Redis URL or password.
-3. Fail-closed returns `503`; explicit fail-open continues traffic and emits a
-   decision metric and structured warning.
+3. Production fail-closed returns `503`. Fail-open continues traffic only in
+   non-production failure tests and emits a decision metric and warning.
 4. Restore Redis access. Quota enforcement resumes without restarting the API.
 
 ### Outbox backlog is growing

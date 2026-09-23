@@ -29,3 +29,13 @@ def test_compose_runs_migrations_before_the_api_with_runtime_hardening():
     assert 'command: ["alembic", "upgrade", "head"]' in compose
     assert compose.count("read_only: true") == 2
     assert compose.count("no-new-privileges:true") == 2
+
+
+def test_production_environment_uses_distributed_fail_closed_rate_limits():
+    environment = (PROJECT_ROOT / ".env.production.example").read_text(encoding="utf-8")
+
+    assert "ENVIRONMENT=production" in environment
+    assert "RATE_LIMIT_BACKEND=redis" in environment
+    assert "RATE_LIMIT_FAILURE_MODE=closed" in environment
+    assert "BUSINESS_WRITE_RATE_LIMIT_FAILURE_MODE=closed" in environment
+    assert "RATE_LIMIT_BACKEND=memory" not in environment

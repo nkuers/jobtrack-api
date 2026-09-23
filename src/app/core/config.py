@@ -422,6 +422,15 @@ class Settings(BaseSettings):
                 "data in production"
             )
 
+        if self.RATE_LIMIT_BACKEND != "redis":
+            raise ValueError("RATE_LIMIT_BACKEND must be redis in production")
+
+        if (
+            self.RATE_LIMIT_FAILURE_MODE != "closed"
+            or self.BUSINESS_WRITE_RATE_LIMIT_FAILURE_MODE != "closed"
+        ):
+            raise ValueError("Rate-limit failure modes must be closed in production")
+
         return self
 
     model_config = SettingsConfigDict(

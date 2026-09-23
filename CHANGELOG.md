@@ -17,6 +17,7 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Interview overlaps across API processes
 - Interview creation restricted to Applications in active recruitment stages
 - Composite owner/parent foreign keys preventing cross-user business hierarchies
+- Production startup enforcement for shared, fail-closed Redis rate limiting
 - Short-TTL Dashboard cache-aside with PostgreSQL fallback and write
   invalidation
 - Real PostgreSQL/Redis integration suite covering ownership, rollback,

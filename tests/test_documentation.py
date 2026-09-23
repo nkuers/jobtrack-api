@@ -39,6 +39,7 @@ DOCUMENTS.extend(
         "0005-application-status-locking.md",
         "0006-interview-overlap-exclusion.md",
         "0007-composite-owner-foreign-keys.md",
+        "0008-production-rate-limit-policy.md",
     )
 )
 MARKDOWN_LINK = re.compile(r"(?<!!)\[[^]]+\]\(([^)]+)\)")

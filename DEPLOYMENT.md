@@ -116,6 +116,7 @@ REDIS_URL=rediss://app:<password>@redis.internal.example:6379/0
 RATE_LIMIT_BACKEND=redis
 RATE_LIMIT_KEY_SECRET=<generated-dedicated-secret>
 RATE_LIMIT_FAILURE_MODE=closed
+BUSINESS_WRITE_RATE_LIMIT_FAILURE_MODE=closed
 EMAIL_DELIVERY_MODE=outbox
 OUTBOX_ENCRYPTION_KEY=<dedicated-fernet-key>
 OUTBOX_BATCH_SIZE=10
@@ -155,8 +156,10 @@ immediate revocation.
 
 Generate `RATE_LIMIT_KEY_SECRET` independently from JWT and encryption keys.
 Redis quota keys contain only a versioned HMAC identifier and fixed-window
-number; rotating this key safely resets active quota buckets. Keep fail-closed
-unless an explicit availability decision accepts temporary unprotected traffic.
+number; rotating this key safely resets active quota buckets. Production
+configuration validation requires the shared Redis backend and fail-closed
+global and business-write policies. This prevents replicas from enforcing
+independent quotas or silently losing write protection during a Redis outage.
 
 Generate the MFA encryption key independently from the JWT signing key:
 
@@ -363,10 +366,11 @@ journalctl -u jobtrack-api -f
 sudo systemctl restart jobtrack-api
 ```
 
-Set `RATE_LIMIT_BACKEND=redis` for shared limits across workers or hosts. Redis
-outages are fail-closed by default; an explicitly configured fail-open policy is
-observable in logs and metrics. Roll back without data migration by selecting
-`RATE_LIMIT_BACKEND=memory`, accepting process-local quotas until Redis returns.
+Production startup rejects `RATE_LIMIT_BACKEND=memory` and either fail-open
+policy. Redis outages therefore make readiness fail and return `503` for
+non-exempt traffic instead of silently splitting or bypassing quotas. Restore
+Redis service rather than switching production replicas to process-local
+limits. Memory and fail-open modes remain available for development.
 
 Run durable email delivery as a separate systemd service using the same release,
 database URL, SMTP settings, and `OUTBOX_ENCRYPTION_KEY` as the API:
@@ -441,6 +445,7 @@ trace-context columns; tracing metadata is not a correctness dependency.
 - [ ] Restrict database and service-account permissions
 - [ ] Restrict the application port to the trusted proxy
 - [ ] Set `FORWARDED_ALLOW_IPS` to direct proxy peers only and test spoofed headers
+- [ ] Verify production uses Redis with both rate-limit failure modes set to `closed`
 - [ ] Enable HTTPS and renewal monitoring
 - [ ] Configure logs, metrics, alerts, and retention
 - [ ] Configure database backups and test restoration

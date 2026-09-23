@@ -108,9 +108,12 @@ Currency remains an explicit three-letter code.
 ### What happens if Redis is down?
 
 Dashboard reads query PostgreSQL and cache invalidation becomes a no-op. The
-business-write limiter defaults to fail-open, while the global limiter has an
-explicit configurable policy. Readiness requires Redis only for configured
-features where operators choose that dependency.
+development business-write limiter may be fail-open for convenience. Production
+startup instead requires shared Redis counters and fail-closed global and
+business-write policies, so protected requests return `503` and readiness fails
+until Redis recovers. This deliberately treats abuse protection as a production
+availability dependency. See
+[ADR 0008](docs/decisions/0008-production-rate-limit-policy.md).
 
 ### How do indexes match queries?
 

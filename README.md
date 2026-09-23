@@ -204,6 +204,8 @@ GitHub Actions runs:
 - Application status changes use a pessimistic row lock.
 - Business writes have a per-user quota in addition to the client-address
   middleware limit.
+- Production refuses process-local or fail-open rate limiting; Redis counters
+  and fail-closed policies are required across replicas.
 - Dashboard uses one HMAC-derived cache key per user with a short TTL.
 - Metrics use bounded labels and never put usernames or user IDs in label
   values.
