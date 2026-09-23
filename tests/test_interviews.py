@@ -3,6 +3,7 @@ from unittest.mock import MagicMock
 
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.auth.jwt import create_access_token
@@ -136,6 +137,7 @@ def test_create_interview_requires_owned_application_and_binds_owner(
     assert "owner_id" not in created
     assert interview is not None
     assert interview.owner_id == user.id
+    assert interview.scheduled_end_at == interview.scheduled_at + timedelta(hours=1)
 
 
 def test_timezone_is_required_and_normalized_to_utc(
@@ -230,6 +232,73 @@ def test_scheduled_interviews_cannot_overlap_for_same_user(
         duration_minutes=30,
     )
     assert boundary["id"] != first["id"]
+
+
+def test_database_constraint_rejects_overlap_when_service_check_is_bypassed(
+    client: TestClient,
+    db_session: Session,
+    user: User,
+    auth_headers: dict[str, str],
+):
+    first_application = create_application(client, auth_headers, "DB Guard One")
+    second_application = create_application(client, auth_headers, "DB Guard Two")
+    start = datetime.now(UTC) + timedelta(days=4)
+    first = Interview(
+        owner_id=user.id,
+        application_id=first_application["id"],
+        interview_type="technical",
+        status="scheduled",
+        scheduled_at=start,
+        duration_minutes=60,
+        scheduled_end_at=start + timedelta(minutes=60),
+    )
+    db_session.add(first)
+    db_session.commit()
+
+    conflicting = Interview(
+        owner_id=user.id,
+        application_id=second_application["id"],
+        interview_type="behavioral",
+        status="scheduled",
+        scheduled_at=start + timedelta(minutes=30),
+        duration_minutes=45,
+        scheduled_end_at=start + timedelta(minutes=75),
+    )
+    db_session.add(conflicting)
+
+    with pytest.raises(IntegrityError):
+        db_session.commit()
+    db_session.rollback()
+
+
+def test_rescheduling_keeps_the_database_window_in_sync(
+    client: TestClient,
+    db_session: Session,
+    auth_headers: dict[str, str],
+):
+    application = create_application(client, auth_headers, "Reschedule Window")
+    interview = create_interview(
+        client,
+        auth_headers,
+        application["id"],
+        datetime.now(UTC) + timedelta(days=5),
+    )
+    new_start = datetime.now(UTC) + timedelta(days=6)
+
+    response = client.patch(
+        f"/api/v1/interviews/{interview['id']}",
+        headers=auth_headers,
+        json={
+            "scheduled_at": new_start.isoformat(),
+            "duration_minutes": 90,
+        },
+    )
+
+    assert response.status_code == 200
+    db_session.expire_all()
+    stored = db_session.get(Interview, interview["id"])
+    assert stored is not None
+    assert stored.scheduled_end_at == stored.scheduled_at + timedelta(minutes=90)
 
 
 def test_different_users_may_schedule_the_same_time(

@@ -37,6 +37,7 @@ DOCUMENTS.extend(
         "0003-dashboard-cache-aside.md",
         "0004-owner-scoped-not-found.md",
         "0005-application-status-locking.md",
+        "0006-interview-overlap-exclusion.md",
     )
 )
 MARKDOWN_LINK = re.compile(r"(?<!!)\[[^]]+\]\(([^)]+)\)")

@@ -82,12 +82,16 @@ erDiagram
         string interview_type
         string status
         datetime scheduled_at
+        datetime scheduled_end_at
         int duration_minutes
     }
 ```
 
 The repeated `owner_id` is intentional. It lets every public query enforce the
 tenant boundary directly instead of trusting a previously loaded parent.
+For scheduled Interviews, PostgreSQL also combines `owner_id` with the
+half-open scheduled time range in a GiST exclusion constraint, so concurrent
+transactions cannot reserve overlapping slots for one user.
 
 ## Authenticated business request flow
 

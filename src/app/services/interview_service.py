@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -52,6 +52,10 @@ class InterviewService:
 
         interview = Interview(
             owner_id=owner_id,
+            scheduled_end_at=self._scheduled_end(
+                data.scheduled_at,
+                data.duration_minutes,
+            ),
             **self._database_values(data.model_dump()),
         )
         try:
@@ -138,6 +142,10 @@ class InterviewService:
 
         scheduled_at = values.get("scheduled_at", interview.scheduled_at)
         duration_minutes = values.get("duration_minutes", interview.duration_minutes)
+        values["scheduled_end_at"] = self._scheduled_end(
+            scheduled_at,
+            duration_minutes,
+        )
         if target_status == InterviewStatus.SCHEDULED and self.repository.has_overlap(
             owner_id,
             scheduled_at=scheduled_at,
@@ -152,6 +160,9 @@ class InterviewService:
             self.db.refresh(interview)
             invalidate_dashboard_cache(owner_id)
             return interview
+        except IntegrityError as exc:
+            self.db.rollback()
+            raise ResourceConflictError(INTERVIEW_CONFLICT) from exc
         except Exception:
             self.db.rollback()
             raise
@@ -177,3 +188,10 @@ class InterviewService:
         if meeting_url is not None:
             values["meeting_url"] = str(meeting_url)
         return values
+
+    @staticmethod
+    def _scheduled_end(
+        scheduled_at: datetime,
+        duration_minutes: int,
+    ) -> datetime:
+        return scheduled_at + timedelta(minutes=duration_minutes)

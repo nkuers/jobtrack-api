@@ -8,7 +8,9 @@ from sqlalchemy import (
     Integer,
     String,
     Text,
+    text,
 )
+from sqlalchemy.dialects.postgresql import ExcludeConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -29,25 +31,6 @@ INTERVIEW_STATUS_SQL = ", ".join(f"'{value}'" for value in INTERVIEW_STATUSES)
 
 class Interview(Base):
     __tablename__ = "interviews"
-    __table_args__ = (
-        CheckConstraint(
-            f"interview_type IN ({INTERVIEW_TYPE_SQL})",
-            name="ck_interviews_type",
-        ),
-        CheckConstraint(
-            f"status IN ({INTERVIEW_STATUS_SQL})",
-            name="ck_interviews_status",
-        ),
-        CheckConstraint(
-            "duration_minutes BETWEEN 15 AND 480",
-            name="ck_interviews_duration",
-        ),
-        Index("ix_interviews_owner_scheduled_at", "owner_id", "scheduled_at"),
-        Index("ix_interviews_owner_application", "owner_id", "application_id"),
-        Index(
-            "ix_interviews_owner_status_scheduled", "owner_id", "status", "scheduled_at"
-        ),
-    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
     owner_id: Mapped[int] = mapped_column(
@@ -64,6 +47,9 @@ class Interview(Base):
         DateTime(timezone=True), nullable=False
     )
     duration_minutes: Mapped[int] = mapped_column(Integer, nullable=False, default=60)
+    scheduled_end_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
     location: Mapped[str | None] = mapped_column(String(255), nullable=True)
     meeting_url: Mapped[str | None] = mapped_column(String(2048), nullable=True)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -78,4 +64,35 @@ class Interview(Base):
         default=lambda: datetime.now(UTC),
         onupdate=lambda: datetime.now(UTC),
         nullable=False,
+    )
+
+    __table_args__ = (
+        CheckConstraint(
+            f"interview_type IN ({INTERVIEW_TYPE_SQL})",
+            name="ck_interviews_type",
+        ),
+        CheckConstraint(
+            f"status IN ({INTERVIEW_STATUS_SQL})",
+            name="ck_interviews_status",
+        ),
+        CheckConstraint(
+            "duration_minutes BETWEEN 15 AND 480",
+            name="ck_interviews_duration",
+        ),
+        CheckConstraint(
+            "scheduled_end_at = scheduled_at + duration_minutes * INTERVAL '1 minute'",
+            name="ck_interviews_scheduled_window",
+        ),
+        ExcludeConstraint(
+            ("owner_id", "="),
+            (text("tstzrange(scheduled_at, scheduled_end_at, '[)')"), "&&"),
+            where=text("status = 'scheduled'"),
+            using="gist",
+            name="ex_interviews_owner_scheduled_window",
+        ),
+        Index("ix_interviews_owner_scheduled_at", "owner_id", "scheduled_at"),
+        Index("ix_interviews_owner_application", "owner_id", "application_id"),
+        Index(
+            "ix_interviews_owner_status_scheduled", "owner_id", "status", "scheduled_at"
+        ),
     )

@@ -21,8 +21,8 @@ failure recovery, and operational evidence.
   validation, and safe parent deletion rules;
 - track one Application per Job through an explicit status machine;
 - write every status transition to history in the same database transaction;
-- schedule multi-round Interviews using timezone-aware UTC timestamps and
-  user-level overlap detection;
+- schedule multi-round Interviews using timezone-aware UTC timestamps and a
+  PostgreSQL-enforced no-overlap invariant;
 - show a Dashboard with status counts, recent applications, Offer conversion,
   upcoming Interviews, and due/overdue actions;
 - cache only the Dashboard aggregate with short-TTL Redis cache-aside and
@@ -243,9 +243,8 @@ load_tests/           Guarded k6 scenarios
 - The application is a backend API; it does not include a frontend.
 - Offset pagination is appropriate for the current scope but should become
   cursor-based for deep, high-volume histories.
-- Interview overlap is enforced in the Service and is not a PostgreSQL
-  exclusion constraint; multiple API processes still rely on transaction
-  timing for concurrent schedule creation.
+- Interview overlap is protected twice: the Service returns an early friendly
+  conflict and a PostgreSQL GiST exclusion constraint closes concurrent races.
 - Dashboard caching accepts a short stale-data window.
 - TOTP is not phishing resistant; passkeys/WebAuthn are future work.
 - Compose is intended for local evaluation. Production requires managed

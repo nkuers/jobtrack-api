@@ -13,6 +13,8 @@ project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Explicit Application state machine with atomic history and concurrent
   transition serialization
 - Timezone-aware Interview scheduling, overlap checks, and upcoming queries
+- PostgreSQL GiST exclusion constraint preventing concurrent scheduled
+  Interview overlaps across API processes
 - Short-TTL Dashboard cache-aside with PostgreSQL fallback and write
   invalidation
 - Real PostgreSQL/Redis integration suite covering ownership, rollback,

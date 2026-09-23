@@ -55,6 +55,12 @@ validates the transition and writes history in the same transaction. A second
 request waits, observes the new status, and is revalidated. A real two-session
 integration test proves that duplicate transitions produce one history row.
 
+Interview scheduling uses a different database primitive. The Service performs
+an early overlap check for a useful `409`, while a partial PostgreSQL GiST
+exclusion constraint protects the final invariant across processes. Scheduled
+time windows use half-open ranges, so one Interview may start exactly when the
+previous one ends.
+
 ### Why synchronous SQLAlchemy?
 
 The project has bounded synchronous transactions and no representative evidence

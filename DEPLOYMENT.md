@@ -189,6 +189,19 @@ uv run alembic upgrade head
 
 Run migrations once per release, not concurrently in every worker.
 
+The Interview overlap migration uses PostgreSQL's standard `btree_gist`
+extension. On a managed database where the application migration role cannot
+create extensions, ask the database administrator to run this once before the
+release:
+
+```sql
+CREATE EXTENSION IF NOT EXISTS btree_gist;
+```
+
+The migration intentionally fails if existing scheduled Interviews overlap.
+Audit and resolve such rows before rollout; do not silently delete or cancel
+user data to make the constraint pass.
+
 When upgrading from v1.1.0, the email-verification migration normalizes existing
 non-null email addresses before adding the lifecycle table. Audit existing
 addresses for case-insensitive duplicates in staging first; the migration must

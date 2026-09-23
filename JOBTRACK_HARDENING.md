@@ -88,6 +88,20 @@ machine, so a version column would add client and migration complexity without
 improving the present invariant. Reconsider optimistic locking if ordinary
 metadata updates need conflict detection or lock wait time becomes measurable.
 
+## Concurrent Interview scheduling
+
+The Service performs an overlap query first so ordinary conflicts return a
+clear `409` without relying on a database exception. That check alone has a
+check-then-insert race across API processes, so PostgreSQL is the final
+authority: `scheduled_end_at` records the derived end time and a partial GiST
+exclusion constraint rejects overlapping `[start, end)` ranges for the same
+owner while status is `scheduled`.
+
+Adjacent Interviews remain valid because the range is half-open. Completed or
+cancelled Interviews leave the constrained set and release the slot. A check
+constraint keeps `scheduled_end_at` equal to `scheduled_at + duration`, and
+tests prove the exclusion rule even when the Service pre-check is bypassed.
+
 ## Failure behavior
 
 - Service transaction tests verify rollback on database and history-write
