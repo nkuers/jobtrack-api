@@ -5,8 +5,9 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 from app.core.request_context import REQUEST_ID_HEADER
+from app.exceptions.domain import ResourceConflictError, ResourceNotFoundError
 
-logger = logging.getLogger("fastapi-production-api")
+logger = logging.getLogger("jobtrack-api")
 
 
 def _request_id_headers(request: Request) -> dict[str, str]:
@@ -18,17 +19,40 @@ def register_exception_handlers(
     app: FastAPI,
 ) -> None:
 
+    @app.exception_handler(ResourceNotFoundError)
+    async def resource_not_found_handler(
+        request: Request,
+        exc: ResourceNotFoundError,
+    ):
+        return JSONResponse(
+            status_code=404,
+            content={"detail": exc.detail},
+            headers=_request_id_headers(request),
+        )
+
+    @app.exception_handler(ResourceConflictError)
+    async def resource_conflict_handler(
+        request: Request,
+        exc: ResourceConflictError,
+    ):
+        return JSONResponse(
+            status_code=409,
+            content={"detail": exc.detail},
+            headers=_request_id_headers(request),
+        )
+
     @app.exception_handler(HTTPException)
     async def http_exception_handler(
         request: Request,
         exc: HTTPException,
     ):
+        headers = {**(exc.headers or {}), **_request_id_headers(request)}
         return JSONResponse(
             status_code=exc.status_code,
             content={
                 "detail": exc.detail,
             },
-            headers=_request_id_headers(request),
+            headers=headers,
         )
 
     @app.exception_handler(RequestValidationError)

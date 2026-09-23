@@ -8,14 +8,14 @@ from app.core.config import Settings, settings
 
 
 def test_settings_loaded():
-    assert settings.APP_NAME == "FastAPI Production API"
+    assert settings.APP_NAME == "JobTrack API"
 
 
 def test_jwt_settings_loaded():
     assert settings.SECRET_KEY
     assert settings.ALGORITHM == "HS256"
     assert settings.JWT_AUDIENCE == "fastapi-client"
-    assert settings.JWT_ISSUER == "fastapi-production-api"
+    assert settings.JWT_ISSUER == "jobtrack-api"
 
 
 def test_production_rejects_short_secret():
@@ -165,6 +165,17 @@ def test_oidc_redis_cache_requires_a_valid_url():
         )
 
 
+def test_dashboard_redis_cache_requires_a_valid_url():
+    with pytest.raises(ValueError, match="REDIS_URL"):
+        Settings(
+            DATABASE_URL="sqlite:///test.db",
+            SECRET_KEY="local-test-secret",
+            DASHBOARD_CACHE_BACKEND="redis",
+            REDIS_URL="https://redis.example",
+            _env_file=None,
+        )
+
+
 def test_oidc_cache_refresh_wait_must_be_shorter_than_lock():
     with pytest.raises(ValueError, match="REFRESH_WAIT_SECONDS"):
         Settings(
@@ -212,6 +223,14 @@ def test_rate_limit_numeric_settings_are_bounded():
             DATABASE_URL="sqlite:///test.db",
             SECRET_KEY="local-test-secret",
             RATE_LIMIT_LIMIT=0,
+            _env_file=None,
+        )
+
+    with pytest.raises(ValueError):
+        Settings(
+            DATABASE_URL="sqlite:///test.db",
+            SECRET_KEY="local-test-secret",
+            BUSINESS_WRITE_RATE_LIMIT=0,
             _env_file=None,
         )
 

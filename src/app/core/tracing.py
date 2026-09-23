@@ -20,7 +20,7 @@ from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapProp
 
 from app.core.config import settings
 
-logger = logging.getLogger("fastapi-production-api.tracing")
+logger = logging.getLogger("jobtrack-api.tracing")
 
 _provider: TracerProvider | None = None
 _instrumented_app: FastAPI | None = None

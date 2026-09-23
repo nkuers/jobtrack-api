@@ -10,7 +10,7 @@ def test_missing_subject():
     token = create_access_token({})
 
     response = client.get(
-        "/me/",
+        "/auth/me",
         headers={
             "Authorization": f"Bearer {token}",
         },

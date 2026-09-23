@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from fastapi.testclient import TestClient
 
 from app.main import app
-from fastapi_production_api import __version__
+from jobtrack_api import __version__
 
 client = TestClient(app)
 

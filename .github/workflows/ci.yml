@@ -49,7 +49,7 @@ jobs:
       BENCHMARK_DATABASE_URL: postgresql+psycopg://fastapi_user:fastapi_password@localhost:5432/fastapi_test
       SECRET_KEY: ci-only-secret-key-with-at-least-32-bytes
       JWT_AUDIENCE: fastapi-client
-      JWT_ISSUER: fastapi-production-api
+      JWT_ISSUER: jobtrack-api
       REDIS_TEST_URL: redis://localhost:6379/15
 
     steps:
@@ -130,18 +130,18 @@ jobs:
           assert app.version == expected, (app.version, expected)"
 
       - name: Build production container image
-        run: docker build --tag fastapi-production-api:ci .
+        run: docker build --tag jobtrack-api:ci .
 
       - name: Verify production container identity and dependencies
         run: |
-          test "$(docker run --rm --entrypoint id fastapi-production-api:ci -u)" = "10001"
-          docker run --rm --entrypoint python fastapi-production-api:ci -c \
+          test "$(docker run --rm --entrypoint id jobtrack-api:ci -u)" = "10001"
+          docker run --rm --entrypoint python jobtrack-api:ci -c \
             "import importlib.util; assert importlib.util.find_spec('pytest') is None"
 
       - name: Smoke-test production container
         run: |
           docker run --detach \
-            --name fastapi-production-api-ci \
+            --name jobtrack-api-ci \
             --network host \
             --read-only \
             --tmpfs /tmp \
@@ -149,7 +149,7 @@ jobs:
             --security-opt no-new-privileges:true \
             --env DATABASE_URL="$DATABASE_URL" \
             --env SECRET_KEY="$SECRET_KEY" \
-            fastapi-production-api:ci
+            jobtrack-api:ci
 
           for attempt in {1..30}; do
             if curl --fail --silent http://127.0.0.1:8000/health/live \
@@ -162,8 +162,8 @@ jobs:
 
       - name: Show production container logs
         if: failure()
-        run: docker logs fastapi-production-api-ci 2>/dev/null || true
+        run: docker logs jobtrack-api-ci 2>/dev/null || true
 
       - name: Remove production container
         if: always()
-        run: docker rm --force fastapi-production-api-ci 2>/dev/null || true
+        run: docker rm --force jobtrack-api-ci 2>/dev/null || true

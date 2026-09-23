@@ -59,7 +59,7 @@ def test_json_log_preserves_request_and_operational_fields():
     record.outbox_message_type = "email_verification.v1"
     record.outbox_attempt = 2
     record.outbox_event = "retried"
-    record.tracing_service = "fastapi-production-api"
+    record.tracing_service = "jobtrack-api"
     record.tracing_environment = "testing"
 
     formatter = JsonFormatter()
@@ -69,7 +69,7 @@ def test_json_log_preserves_request_and_operational_fields():
     assert payload["outbox_message_type"] == "email_verification.v1"
     assert payload["outbox_attempt"] == 2
     assert payload["outbox_event"] == "retried"
-    assert payload["tracing_service"] == "fastapi-production-api"
+    assert payload["tracing_service"] == "jobtrack-api"
     assert payload["tracing_environment"] == "testing"
 
 

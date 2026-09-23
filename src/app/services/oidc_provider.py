@@ -14,7 +14,7 @@ from app.core.metrics import (
 )
 from app.services.oidc_cache import CacheDocument, OIDCPublicDocumentCache
 
-logger = logging.getLogger("fastapi-production-api.oidc_provider")
+logger = logging.getLogger("jobtrack-api.oidc_provider")
 ValidatedDocument = TypeVar("ValidatedDocument")
 
 

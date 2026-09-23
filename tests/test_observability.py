@@ -50,21 +50,19 @@ def test_metrics_include_status_and_route_template():
     assert response.status_code == 200
     assert response.headers["cache-control"] == "no-store"
     assert (
-        'fastapi_production_api_http_requests_total{method="GET",'
+        'jobtrack_api_http_requests_total{method="GET",'
         'route="/health/live",status_code="200"}'
     ) in response.text
     assert 'route="unmatched",status_code="404"' in response.text
     assert "/a-path-that-does-not-exist" not in response.text
-    assert "fastapi_production_api_http_request_duration_seconds_bucket" in (
-        response.text
-    )
-    assert "fastapi_production_api_rate_limit_decisions_total" in response.text
-    assert "fastapi_production_api_rate_limit_backend_errors_total" in response.text
+    assert "jobtrack_api_http_request_duration_seconds_bucket" in (response.text)
+    assert "jobtrack_api_rate_limit_decisions_total" in response.text
+    assert "jobtrack_api_rate_limit_backend_errors_total" in response.text
 
 
 def test_json_formatter_emits_correlation_fields():
     record = logging.LogRecord(
-        name="fastapi-production-api.request",
+        name="jobtrack-api.request",
         level=logging.INFO,
         pathname=__file__,
         lineno=1,

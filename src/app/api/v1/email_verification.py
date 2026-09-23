@@ -16,7 +16,7 @@ from app.services.email_verification import (
     issue_email_verification_token,
 )
 
-logger = logging.getLogger("fastapi-production-api")
+logger = logging.getLogger("jobtrack-api")
 ACCEPTED_MESSAGE = (
     "If the address is eligible, a verification email will be sent shortly"
 )

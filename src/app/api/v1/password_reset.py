@@ -16,7 +16,7 @@ from app.services.password_reset import (
     issue_password_reset_token,
 )
 
-logger = logging.getLogger("fastapi-production-api")
+logger = logging.getLogger("jobtrack-api")
 ACCEPTED_MESSAGE = "If the address is eligible, a password reset email will be sent"
 
 router = APIRouter(

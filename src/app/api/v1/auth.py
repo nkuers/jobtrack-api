@@ -34,18 +34,6 @@ def get_me(
     return current_user
 
 
-# Compatibility route for old clients/tests
-@router.get(
-    "/../me",
-    response_model=UserResponse,
-    include_in_schema=False,
-)
-def get_me_legacy(
-    current_user: User = Depends(get_current_user),
-):
-    return current_user
-
-
 @router.post(
     "/refresh",
     response_model=Token,

@@ -12,11 +12,18 @@ def test_me():
     )
 
     response = client.get(
-        "/me/",
+        "/auth/me",
         headers={
             "Authorization": f"Bearer {token}",
         },
     )
 
     assert response.status_code == 200
-    assert response.json()["sub"] == "houngdev"
+    assert response.json()["username"] == "houngdev"
+    assert "password" not in response.json()
+
+
+def test_legacy_me_route_is_not_registered():
+    response = client.get("/me/")
+
+    assert response.status_code == 404

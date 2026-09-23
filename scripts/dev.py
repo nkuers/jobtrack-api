@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import base64
+import os
 import secrets
 import shutil
 import subprocess
@@ -16,6 +17,9 @@ ENV_FILE = PROJECT_ROOT / ".env"
 SECRET_PLACEHOLDER = "change_this_to_a_random_secret_key"
 RATE_LIMIT_SECRET_PLACEHOLDER = "change_this_to_a_random_rate_limit_key"
 OUTBOX_SECRET_PLACEHOLDER = "change_this_to_a_random_outbox_key"
+DEFAULT_TEST_DATABASE_URL = (
+    "postgresql+psycopg://fastapi_user:fastapi_password@localhost:5433/fastapi_test"
+)
 
 
 class DevelopmentError(RuntimeError):
@@ -30,9 +34,17 @@ def require_command(command: str) -> None:
         )
 
 
-def run_command(command: list[str]) -> None:
+def run_command(
+    command: list[str],
+    *,
+    env_overrides: dict[str, str] | None = None,
+) -> None:
     print(f"\n> {' '.join(command)}", flush=True)
-    subprocess.run(command, cwd=PROJECT_ROOT, check=True)
+    environment = None
+    if env_overrides:
+        environment = os.environ.copy()
+        environment.update(env_overrides)
+    subprocess.run(command, cwd=PROJECT_ROOT, check=True, env=environment)
 
 
 def require_docker_engine() -> None:
@@ -137,6 +149,52 @@ def database_down() -> None:
     run_command(["docker", "compose", "down"])
 
 
+def seed_demo(*, confirm: bool = False) -> None:
+    if not confirm:
+        raise DevelopmentError(
+            "Demo data changes the configured database; rerun with --confirm."
+        )
+    require_command("uv")
+    run_command(["uv", "run", "python", "scripts/seed_demo.py", "--confirm"])
+
+
+def test(*, skip_docker: bool = False) -> None:
+    require_command("uv")
+    ensure_env()
+    test_database_url = os.environ.get(
+        "TEST_DATABASE_URL",
+        DEFAULT_TEST_DATABASE_URL,
+    )
+    test_environment = {
+        "DATABASE_URL": test_database_url,
+        "TEST_DATABASE_URL": test_database_url,
+    }
+
+    if not skip_docker:
+        require_docker_engine()
+        run_command(
+            [
+                "docker",
+                "compose",
+                "--profile",
+                "test",
+                "up",
+                "-d",
+                "--wait",
+                "postgres-test",
+            ]
+        )
+
+    run_command(
+        ["uv", "run", "alembic", "upgrade", "head"],
+        env_overrides=test_environment,
+    )
+    run_command(
+        ["uv", "run", "pytest"],
+        env_overrides=test_environment,
+    )
+
+
 def check() -> None:
     require_command("uv")
     commands = [
@@ -175,6 +233,24 @@ def build_parser() -> argparse.ArgumentParser:
         "stack-up", help="Build and start the complete containerized stack."
     )
     subparsers.add_parser("db-down", help="Stop local Compose services.")
+    demo_parser = subparsers.add_parser(
+        "demo-data",
+        help="Explicitly create a local JobTrack demonstration dataset.",
+    )
+    demo_parser.add_argument(
+        "--confirm",
+        action="store_true",
+        help="Confirm that the configured local database may be changed.",
+    )
+    test_parser = subparsers.add_parser(
+        "test",
+        help="Migrate the isolated test database and run the test suite.",
+    )
+    test_parser.add_argument(
+        "--skip-docker",
+        action="store_true",
+        help="Use TEST_DATABASE_URL without starting the test database container.",
+    )
     subparsers.add_parser("check", help="Run the complete CI-equivalent quality gate.")
     return parser
 
@@ -193,6 +269,10 @@ def main(argv: list[str] | None = None) -> int:
     try:
         if args.command == "setup":
             setup(skip_docker=args.skip_docker)
+        elif args.command == "test":
+            test(skip_docker=args.skip_docker)
+        elif args.command == "demo-data":
+            seed_demo(confirm=args.confirm)
         else:
             actions[args.command]()
     except DevelopmentError as error:

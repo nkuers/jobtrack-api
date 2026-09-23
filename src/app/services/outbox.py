@@ -22,7 +22,7 @@ def _fernet() -> Fernet:
 
 
 def outbox_idempotency_key(message_type: str, token_hash: str) -> str:
-    value = f"fastapi-production-api:outbox:v1:{message_type}:{token_hash}"
+    value = f"jobtrack-api:outbox:v1:{message_type}:{token_hash}"
     return hashlib.sha256(value.encode("utf-8")).hexdigest()
 
 

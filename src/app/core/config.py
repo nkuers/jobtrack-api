@@ -7,7 +7,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    APP_NAME: str = "FastAPI Production API"
+    APP_NAME: str = "JobTrack API"
 
     ENVIRONMENT: str = "development"
 
@@ -27,7 +27,7 @@ class Settings(BaseSettings):
 
     JWT_AUDIENCE: str = "fastapi-client"
 
-    JWT_ISSUER: str = "fastapi-production-api"
+    JWT_ISSUER: str = "jobtrack-api"
 
     CORS_ORIGINS: str = ""
 
@@ -41,6 +41,12 @@ class Settings(BaseSettings):
 
     REDIS_MAX_CONNECTIONS: int = Field(default=20, gt=0, le=1000)
 
+    DASHBOARD_CACHE_BACKEND: Literal["none", "redis"] = "none"
+
+    DASHBOARD_CACHE_TTL_SECONDS: int = Field(default=60, ge=30, le=300)
+
+    DASHBOARD_CACHE_MAX_BYTES: int = Field(default=262144, ge=1024, le=1048576)
+
     RATE_LIMIT_BACKEND: Literal["memory", "redis"] = "memory"
 
     RATE_LIMIT_LIMIT: int = Field(default=100, gt=0, le=1_000_000)
@@ -50,6 +56,16 @@ class Settings(BaseSettings):
     RATE_LIMIT_FAILURE_MODE: Literal["closed", "open"] = "closed"
 
     RATE_LIMIT_KEY_SECRET: SecretStr = SecretStr("")
+
+    BUSINESS_WRITE_RATE_LIMIT: int = Field(default=30, gt=0, le=10000)
+
+    BUSINESS_WRITE_RATE_LIMIT_WINDOW_SECONDS: int = Field(
+        default=60,
+        gt=0,
+        le=86400,
+    )
+
+    BUSINESS_WRITE_RATE_LIMIT_FAILURE_MODE: Literal["closed", "open"] = "open"
 
     EMAIL_DELIVERY_MODE: Literal["disabled", "smtp", "outbox"] = "disabled"
 
@@ -79,7 +95,7 @@ class Settings(BaseSettings):
 
     MFA_ENABLED: bool = False
 
-    MFA_ISSUER: str = "FastAPI Production API"
+    MFA_ISSUER: str = "JobTrack"
 
     MFA_ENCRYPTION_KEY: SecretStr = SecretStr("")
 
@@ -135,7 +151,7 @@ class Settings(BaseSettings):
 
     TRACING_ENABLED: bool = False
 
-    OTEL_SERVICE_NAME: str = "fastapi-production-api"
+    OTEL_SERVICE_NAME: str = "jobtrack-api"
 
     OTEL_EXPORTER_OTLP_ENDPOINT: str = "http://localhost:4318"
 
@@ -184,7 +200,11 @@ class Settings(BaseSettings):
                     "or canonical CIDR networks"
                 ) from exc
 
-        if self.RATE_LIMIT_BACKEND == "redis" or self.OIDC_CACHE_BACKEND == "redis":
+        if (
+            self.RATE_LIMIT_BACKEND == "redis"
+            or self.OIDC_CACHE_BACKEND == "redis"
+            or self.DASHBOARD_CACHE_BACKEND == "redis"
+        ):
             redis_url_value = self.REDIS_URL.get_secret_value()
             redis_url = urlsplit(redis_url_value)
             if redis_url.scheme not in {"redis", "rediss"} or not redis_url.hostname:

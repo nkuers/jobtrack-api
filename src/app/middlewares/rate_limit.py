@@ -42,7 +42,7 @@ local retry_after = window - (seconds % window)
 return {count, retry_after}
 """
 
-logger = logging.getLogger("fastapi-production-api.rate_limit")
+logger = logging.getLogger("jobtrack-api.rate_limit")
 
 
 @dataclass(frozen=True)
@@ -99,7 +99,7 @@ class RedisRateLimiter:
         normalized = self.normalize_client(client)
         identifier = hmac.new(
             self.key_secret,
-            b"fastapi-production-api:rate-limit:v1:" + normalized.encode("utf-8"),
+            b"jobtrack-api:rate-limit:v1:" + normalized.encode("utf-8"),
             hashlib.sha256,
         ).hexdigest()
         return f"fpapi:rate-limit:v1:{identifier}:"

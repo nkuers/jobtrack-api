@@ -63,6 +63,10 @@ class JsonFormatter(logging.Formatter):
             "outbox_failure_category",
             "oidc_cache_event",
             "oidc_cache_document",
+            "dashboard_cache_event",
+            "resource_type",
+            "resource_operation",
+            "resource_outcome",
             "tracing_service",
             "tracing_environment",
         ):
@@ -97,4 +101,4 @@ def setup_logging() -> None:
     root_logger.setLevel(log_level)
 
 
-logger = logging.getLogger("fastapi-production-api")
+logger = logging.getLogger("jobtrack-api")

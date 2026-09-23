@@ -6,6 +6,6 @@ client = TestClient(app)
 
 
 def test_missing_token():
-    response = client.get("/me/")
+    response = client.get("/auth/me")
 
     assert response.status_code == 401

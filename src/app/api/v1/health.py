@@ -11,7 +11,7 @@ from app.core.redis import get_redis_client
 from app.db.session import engine
 
 router = APIRouter()
-logger = logging.getLogger("fastapi-production-api.health")
+logger = logging.getLogger("jobtrack-api.health")
 
 
 def _database_is_ready() -> bool:

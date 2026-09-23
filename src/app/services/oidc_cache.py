@@ -13,10 +13,10 @@ from app.core.config import settings
 from app.core.metrics import OIDC_CACHE_OPERATIONS_TOTAL
 from app.core.redis import get_sync_redis_client
 
-logger = logging.getLogger("fastapi-production-api.oidc_cache")
+logger = logging.getLogger("jobtrack-api.oidc_cache")
 
 CacheDocument = Literal["discovery", "jwks"]
-CACHE_NAMESPACE = "fastapi-production-api:oidc-cache:v1"
+CACHE_NAMESPACE = "jobtrack-api:oidc-cache:v1"
 _RELEASE_LOCK_SCRIPT = """
 if redis.call('GET', KEYS[1]) == ARGV[1] then
   return redis.call('DEL', KEYS[1])

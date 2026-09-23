@@ -16,7 +16,7 @@ from app.core.request_context import (
     set_request_id,
 )
 
-logger = logging.getLogger("fastapi-production-api.request")
+logger = logging.getLogger("jobtrack-api.request")
 
 
 def setup_request_logging(

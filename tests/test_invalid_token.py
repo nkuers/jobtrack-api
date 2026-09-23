@@ -7,7 +7,7 @@ client = TestClient(app)
 
 def test_invalid_token():
     response = client.get(
-        "/me/",
+        "/auth/me",
         headers={
             "Authorization": "Bearer invalid-token",
         },

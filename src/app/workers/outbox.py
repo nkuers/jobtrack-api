@@ -11,7 +11,7 @@ from app.db.session import SessionLocal
 from app.services.email_delivery import SMTPEmailSender
 from app.services.outbox_worker import OutboxWorker
 
-logger = logging.getLogger("fastapi-production-api.outbox_worker")
+logger = logging.getLogger("jobtrack-api.outbox_worker")
 
 
 def build_parser() -> argparse.ArgumentParser:

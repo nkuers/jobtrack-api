@@ -127,6 +127,43 @@ def test_database_commands_use_compose_without_deleting_data(monkeypatch):
     assert ["docker", "compose", "down", "--volumes"] not in commands
 
 
+def test_test_command_uses_isolated_database(monkeypatch):
+    monkeypatch.setattr(dev, "require_command", lambda _: None)
+    monkeypatch.setattr(dev, "require_docker_engine", lambda: None)
+    monkeypatch.setattr(dev, "ensure_env", lambda: False)
+    monkeypatch.delenv("TEST_DATABASE_URL", raising=False)
+    commands = []
+
+    def record(command, *, env_overrides=None):
+        commands.append((command, env_overrides))
+
+    monkeypatch.setattr(dev, "run_command", record)
+
+    dev.test()
+
+    test_environment = {
+        "DATABASE_URL": dev.DEFAULT_TEST_DATABASE_URL,
+        "TEST_DATABASE_URL": dev.DEFAULT_TEST_DATABASE_URL,
+    }
+    assert commands == [
+        (
+            [
+                "docker",
+                "compose",
+                "--profile",
+                "test",
+                "up",
+                "-d",
+                "--wait",
+                "postgres-test",
+            ],
+            None,
+        ),
+        (["uv", "run", "alembic", "upgrade", "head"], test_environment),
+        (["uv", "run", "pytest"], test_environment),
+    ]
+
+
 def test_stack_up_prepares_env_and_builds_the_complete_stack(monkeypatch):
     monkeypatch.setattr(dev, "require_docker_engine", lambda: None)
     prepared = []
@@ -138,6 +175,23 @@ def test_stack_up_prepares_env_and_builds_the_complete_stack(monkeypatch):
 
     assert prepared == [True]
     assert commands == [["docker", "compose", "up", "--build", "-d", "--wait"]]
+
+
+def test_demo_data_requires_explicit_confirmation(monkeypatch):
+    commands = []
+    monkeypatch.setattr(dev, "run_command", commands.append)
+
+    assert dev.main(["demo-data"]) == 1
+    assert commands == []
+
+
+def test_demo_data_runs_the_guarded_seed_script(monkeypatch):
+    monkeypatch.setattr(dev, "require_command", lambda _: None)
+    commands = []
+    monkeypatch.setattr(dev, "run_command", commands.append)
+
+    assert dev.main(["demo-data", "--confirm"]) == 0
+    assert commands == [["uv", "run", "python", "scripts/seed_demo.py", "--confirm"]]
 
 
 def test_docker_preflight_explains_unavailable_engine(monkeypatch):

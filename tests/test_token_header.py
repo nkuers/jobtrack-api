@@ -7,7 +7,7 @@ client = TestClient(app)
 
 def test_missing_bearer_token_header():
     response = client.get(
-        "/me/",
+        "/auth/me",
         headers={
             "Authorization": "Token abc123",
         },

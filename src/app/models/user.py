@@ -1,11 +1,12 @@
 from datetime import UTC, datetime
 
-from sqlalchemy import BigInteger, Boolean, DateTime, Index, String, Text, func
+from sqlalchemy import BigInteger, Boolean, DateTime, Index, String, Text, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
 
 
+# 规定数据库怎么存users表
 class User(Base):
     __tablename__ = "users"
 
@@ -89,7 +90,7 @@ class User(Base):
     __table_args__ = (
         Index(
             "uq_users_email_normalized",
-            func.lower(func.trim(email)),
+            text("lower(TRIM(BOTH FROM email))"),
             unique=True,
         ),
     )

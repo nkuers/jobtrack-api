@@ -12,7 +12,7 @@ def test_protected_route():
     )
 
     response = client.get(
-        "/me/",
+        "/auth/me",
         headers={
             "Authorization": f"Bearer {token}",
         },

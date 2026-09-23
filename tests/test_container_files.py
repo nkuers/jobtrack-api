@@ -10,7 +10,7 @@ def test_production_image_is_locked_minimal_and_non_root():
     assert "FROM python:3.13-slim-trixie AS runtime" in dockerfile
     assert "USER 10001:10001" in dockerfile
     assert "HEALTHCHECK" in dockerfile
-    assert 'CMD ["fastapi-production-api"]' in dockerfile
+    assert 'CMD ["jobtrack-api"]' in dockerfile
 
 
 def test_docker_context_excludes_secrets_and_local_environments():

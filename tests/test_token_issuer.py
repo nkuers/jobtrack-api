@@ -6,10 +6,10 @@ def test_token_issuer():
     token = create_access_token(
         {
             "sub": "houngdev",
-            "iss": "fastapi-production-api",
+            "iss": "jobtrack-api",
         }
     )
 
     payload = verify_token(token)
 
-    assert payload["iss"] == "fastapi-production-api"
+    assert payload["iss"] == "jobtrack-api"

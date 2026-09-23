@@ -11,8 +11,8 @@ const RUN_ID = (__ENV.RUN_ID || `${Date.now()}`)
   .replace(/[^a-zA-Z0-9_-]/g, "")
   .slice(0, 40);
 
-if (!["health", "authenticated"].includes(PROFILE)) {
-  throw new Error("PROFILE must be health or authenticated");
+if (!["health", "authenticated", "crud"].includes(PROFILE)) {
+  throw new Error("PROFILE must be health, authenticated, or crud");
 }
 
 assertSafeTarget(BASE_URL);
@@ -125,12 +125,92 @@ function authenticatedIteration(data) {
   }
 }
 
+function checkedJsonWrite(method, path, payload, endpoint) {
+  const response = http.request(
+    method,
+    `${BASE_URL}${path}`,
+    JSON.stringify(payload),
+    {
+      headers: {
+        Authorization: `Bearer ${tokens.access_token}`,
+        "Content-Type": "application/json",
+      },
+      ...workloadTags(endpoint),
+      responseType: "text",
+    },
+  );
+  if (!check(response, { [`${endpoint} succeeds`]: (result) => result.status >= 200 && result.status < 300 })) {
+    return null;
+  }
+  return response.body ? response.json() : {};
+}
+
+function crudIteration(data) {
+  if (!tokens) {
+    tokens = login(data.users[__VU - 1]);
+  }
+
+  const suffix = `${RUN_ID}-${__VU}-${__ITER}`;
+  const company = checkedJsonWrite(
+    "POST",
+    "/api/v1/companies",
+    { name: `Load Company ${suffix}` },
+    "company_create",
+  );
+  if (!company) return;
+
+  const job = checkedJsonWrite(
+    "POST",
+    "/api/v1/jobs",
+    { company_id: company.id, title: `Backend Engineer ${suffix}`, work_mode: "remote" },
+    "job_create",
+  );
+  if (!job) return;
+
+  const application = checkedJsonWrite(
+    "POST",
+    "/api/v1/applications",
+    { job_id: job.id, status: "saved", priority: 3 },
+    "application_create",
+  );
+  if (!application) return;
+
+  if (!checkedJsonWrite(
+    "PATCH",
+    `/api/v1/applications/${application.id}/status`,
+    { status: "applied" },
+    "application_status",
+  )) return;
+
+  const slot = (__VU * 100000) + __ITER;
+  const scheduledAt = new Date(Date.now() + (7 * 86400000) + (slot * 20 * 60000));
+  if (!checkedJsonWrite(
+    "POST",
+    "/api/v1/interviews",
+    {
+      application_id: application.id,
+      interview_type: "technical",
+      scheduled_at: scheduledAt.toISOString(),
+      duration_minutes: 15,
+    },
+    "interview_create",
+  )) return;
+
+  const dashboard = http.get(`${BASE_URL}/api/v1/dashboard`, {
+    headers: { Authorization: `Bearer ${tokens.access_token}` },
+    ...workloadTags("dashboard"),
+  });
+  check(dashboard, { "dashboard read succeeds": (response) => response.status === 200 });
+}
+
 export default function (data) {
   if (PROFILE === "health") {
     const response = http.get(`${BASE_URL}/health/live`, workloadTags("liveness"));
     check(response, { "liveness succeeds": (result) => result.status === 200 });
-  } else {
+  } else if (PROFILE === "authenticated") {
     authenticatedIteration(data);
+  } else {
+    crudIteration(data);
   }
   sleep(0.1);
 }

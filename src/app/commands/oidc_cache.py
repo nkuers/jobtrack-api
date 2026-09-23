@@ -5,7 +5,7 @@ from app.core.config import settings
 from app.core.logging import setup_logging
 from app.services.oidc_cache import OIDCPublicDocumentCache
 
-logger = logging.getLogger("fastapi-production-api.oidc_cache")
+logger = logging.getLogger("jobtrack-api.oidc_cache")
 
 
 def build_parser() -> argparse.ArgumentParser:

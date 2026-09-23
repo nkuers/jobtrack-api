@@ -5,7 +5,7 @@ from app.main import app
 client = TestClient(app)
 
 
-def test_create_user():
+def test_placeholder_user_creation_route_is_not_registered():
     response = client.post(
         "/users/",
         json={
@@ -14,6 +14,5 @@ def test_create_user():
         },
     )
 
-    assert response.status_code == 200
-    assert response.json()["success"] is True
-    assert response.json()["data"]["username"] == "houngdev"
+    assert response.status_code == 404
+    assert "secret123" not in response.text

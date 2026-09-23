@@ -22,7 +22,7 @@ from app.services.account_action_tokens import as_utc, utc_now
 from app.services.email_delivery import EmailSender
 from app.services.outbox import decrypt_email_payload
 
-logger = logging.getLogger("fastapi-production-api.outbox_worker")
+logger = logging.getLogger("jobtrack-api.outbox_worker")
 
 
 @dataclass(frozen=True)
@@ -294,7 +294,7 @@ class OutboxWorker:
         return len(messages)
 
     def _process(self, message: ClaimedMessage) -> None:
-        tracer = get_tracer("fastapi-production-api.outbox-worker")
+        tracer = get_tracer("jobtrack-api.outbox-worker")
 
         if tracer is None:
             self._process_message(message)

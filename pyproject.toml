@@ -1,10 +1,10 @@
 [project]
-name = "fastapi-production-api"
-version = "1.2.0"
-description = "A security-focused FastAPI backend foundation for production services."
+name = "jobtrack-api"
+version = "1.3.0"
+description = "A production-oriented FastAPI backend for tracking jobs, applications, and interviews."
 readme = "README.md"
 authors = [
-    { name = "Nana Dev", email = "chukafe0401@gmail.com" }
+    { name = "nkuers", email = "3287049405@qq.com" }
 ]
 requires-python = ">=3.13"
 license = "MIT"
@@ -13,6 +13,7 @@ keywords = [
     "api",
     "backend",
     "fastapi",
+    "job-tracking",
     "jwt",
     "postgresql",
     "python",
@@ -55,27 +56,27 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/HoungDev/fastapi-production-api"
-Repository = "https://github.com/HoungDev/fastapi-production-api"
-Issues = "https://github.com/HoungDev/fastapi-production-api/issues"
-Changelog = "https://github.com/HoungDev/fastapi-production-api/blob/main/CHANGELOG.md"
+Homepage = "https://github.com/nkuers/jobtrack-api"
+Repository = "https://github.com/nkuers/jobtrack-api"
+Issues = "https://github.com/nkuers/jobtrack-api/issues"
+Changelog = "https://github.com/nkuers/jobtrack-api/blob/main/CHANGELOG.md"
 
 [project.scripts]
-fastapi-production-api = "fastapi_production_api:main"
-fastapi-production-worker = "app.workers.outbox:main"
-fastapi-production-cache = "app.commands.oidc_cache:main"
+jobtrack-api = "jobtrack_api:main"
+jobtrack-worker = "app.workers.outbox:main"
+jobtrack-cache = "app.commands.oidc_cache:main"
 
 [build-system]
 requires = ["uv_build>=0.12.0,<0.13.0"]
 build-backend = "uv_build"
 
 [tool.uv.build-backend]
-module-name = ["app", "fastapi_production_api"]
+module-name = ["app", "jobtrack_api"]
 
 [dependency-groups]
 dev = [
     "asyncpg>=0.31.0,<1",
-    "httpx2>=2.7.0",
+    "httpx2>=2.12.0",
     "pip-audit>=2.9.0",
     "pytest>=9.1.1",
     "pytest-cov>=7.0.0",
@@ -89,7 +90,7 @@ addopts = "-ra --cov --cov-report=term-missing --cov-fail-under=90"
 
 [tool.coverage.run]
 branch = true
-source = ["app", "fastapi_production_api"]
+source = ["app", "jobtrack_api"]
 
 [tool.coverage.report]
 fail_under = 90
