@@ -5,6 +5,7 @@ from sqlalchemy import (
     Date,
     DateTime,
     ForeignKey,
+    ForeignKeyConstraint,
     Index,
     Integer,
     String,
@@ -31,6 +32,17 @@ APPLICATION_STATUS_SQL = ", ".join(f"'{value}'" for value in APPLICATION_STATUSE
 class Application(Base):
     __tablename__ = "applications"
     __table_args__ = (
+        UniqueConstraint(
+            "owner_id",
+            "id",
+            name="uq_applications_owner_id",
+        ),
+        ForeignKeyConstraint(
+            ["owner_id", "job_id"],
+            ["jobs.owner_id", "jobs.id"],
+            name="fk_applications_owner_job",
+            ondelete="RESTRICT",
+        ),
         UniqueConstraint(
             "owner_id",
             "job_id",
@@ -64,7 +76,6 @@ class Application(Base):
         nullable=False,
     )
     job_id: Mapped[int] = mapped_column(
-        ForeignKey("jobs.id", ondelete="RESTRICT"),
         nullable=False,
     )
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="saved")

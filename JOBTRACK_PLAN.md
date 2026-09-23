@@ -13,10 +13,11 @@
 - 阶段 6 已完成：Dashboard 聚合统计、Redis cache-aside、短 TTL、用户级安全缓存键、写后失效和故障回退已实现。
 - 阶段 7 已完成：owner 查询审计、分页上限、EXPLAIN 索引验证、用户级写限流、低基数业务指标、安全日志、并发状态锁测试和 authenticated CRUD 压测场景已完成。
 - 阶段 8 已完成：README、架构图、ADR、显式演示数据、演示流程、面试材料、Compose 一键启动和 CI 发布门禁均已验证。
-- 当前全量测试为 387 passed，覆盖率 92.44%，PostgreSQL 和 Redis 集成测试全部通过。
+- 当前全量测试为 391 passed，覆盖率 92.44%，PostgreSQL 和 Redis 集成测试全部通过。
 - 核心规划已全部完成；下一步进入演示、代码审阅和按实际需求选择增强项。
 - Review 优化 1 已完成：Interview 时间窗增加 PostgreSQL GiST 排斥约束，关闭多进程并发下的 check-then-insert 竞态。
 - Review 优化 2 已完成：创建 Interview 前锁定 Application，并只允许 `screening`、`interview`、`offer` 三个有效招聘阶段。
+- Review 优化 3 已完成：复合外键在数据库层保证 Job、Application、Interview 与父资源的 owner 一致。
 
 ## 1. 规划目标
 
@@ -595,15 +596,16 @@ saved -> applied -> screening -> interview -> offer
 完成记录（2026-09-22）：
 
 - README 已明确模板来源、保留能力和 JobTrack 新增设计，并提供快速启动、API、测试与局限说明。
-- `ARCHITECTURE.md` 已包含 ER 图和认证请求流程；六份 ADR 已记录关键架构取舍。
+- `ARCHITECTURE.md` 已包含 ER 图和认证请求流程；七份 ADR 已记录关键架构取舍。
 - `scripts/seed_demo.py` 只接受显式 `--confirm`，并拒绝生产、远程及非演示数据库。
 - `DEMO.md` 和 `INTERVIEW_GUIDE.md` 已覆盖完整演示顺序、项目讲解与常见追问。
 - Compose 已实测完成镜像构建、Alembic one-shot migration、非 root API 启动和 live/ready 健康检查。
 - CI 契约测试覆盖 lint、format、migration、pytest、依赖审计、构建及容器健康检查。
 - 依赖审计发现并修复 `httpx2/httpcore2` 漏洞；最终审计无已知漏洞。
-- 最终验证：387 passed，覆盖率 92.44%，Ruff 和发行包构建通过。
+- 最终验证：391 passed，覆盖率 92.44%，Ruff 和发行包构建通过。
 - 后续 Review 已将 Interview 重叠从 Service 预检查提升为数据库级并发不变量，并补充迁移、回归测试和 ADR 0006。
 - 后续 Review 已补齐 Interview 与 Application 状态之间的业务约束；行锁会串行化排期与状态变更，终态申请的已有面试仍可完成或取消。
+- 后续 Review 已用复合外键关闭绕过 Service 时可能产生的跨 owner 父子关联，并验证用户删除仍可完整级联。
 
 ## 8. 测试矩阵
 

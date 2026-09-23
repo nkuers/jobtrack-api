@@ -1,11 +1,14 @@
 import asyncio
 import json
 import logging
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
 from redis.exceptions import ConnectionError
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session
 
 from app.auth.jwt import create_access_token
 from app.core.business_observability import record_business_operation
@@ -13,6 +16,10 @@ from app.core.logging import JsonFormatter
 from app.core.metrics import BUSINESS_OPERATIONS_TOTAL
 from app.dependencies import business_rate_limit
 from app.middlewares.rate_limit import RateLimiter
+from app.models.application import Application
+from app.models.company import Company
+from app.models.interview import Interview
+from app.models.job import Job
 from app.models.user import User
 
 
@@ -161,3 +168,131 @@ def test_upcoming_interviews_reject_limit_above_global_maximum(
         params={"limit": 101},
     )
     assert response.status_code == 422
+
+
+def test_database_rejects_job_with_foreign_owned_company(
+    db_session: Session,
+    user: User,
+    second_user: User,
+):
+    company = Company(owner_id=second_user.id, name="Other Owner Company")
+    db_session.add(company)
+    db_session.commit()
+
+    db_session.add(
+        Job(
+            owner_id=user.id,
+            company_id=company.id,
+            title="Invalid Cross-owner Job",
+        )
+    )
+
+    with pytest.raises(IntegrityError) as exc_info:
+        db_session.commit()
+    db_session.rollback()
+    assert exc_info.value.orig.diag.constraint_name == "fk_jobs_owner_company"
+
+
+def test_database_rejects_application_with_foreign_owned_job(
+    db_session: Session,
+    user: User,
+    second_user: User,
+):
+    company = Company(owner_id=user.id, name="Application Parent")
+    db_session.add(company)
+    db_session.flush()
+    job = Job(owner_id=user.id, company_id=company.id, title="Application Parent")
+    db_session.add(job)
+    db_session.commit()
+
+    db_session.add(
+        Application(
+            owner_id=second_user.id,
+            job_id=job.id,
+            status="saved",
+        )
+    )
+
+    with pytest.raises(IntegrityError) as exc_info:
+        db_session.commit()
+    db_session.rollback()
+    assert exc_info.value.orig.diag.constraint_name == "fk_applications_owner_job"
+
+
+def test_database_rejects_interview_with_foreign_owned_application(
+    db_session: Session,
+    user: User,
+    second_user: User,
+):
+    company = Company(owner_id=user.id, name="Interview Parent")
+    db_session.add(company)
+    db_session.flush()
+    job = Job(owner_id=user.id, company_id=company.id, title="Interview Parent")
+    db_session.add(job)
+    db_session.flush()
+    application = Application(
+        owner_id=user.id,
+        job_id=job.id,
+        status="screening",
+    )
+    db_session.add(application)
+    db_session.commit()
+    scheduled_at = datetime.now(UTC) + timedelta(days=1)
+
+    db_session.add(
+        Interview(
+            owner_id=second_user.id,
+            application_id=application.id,
+            interview_type="technical",
+            status="scheduled",
+            scheduled_at=scheduled_at,
+            scheduled_end_at=scheduled_at + timedelta(hours=1),
+            duration_minutes=60,
+        )
+    )
+
+    with pytest.raises(IntegrityError) as exc_info:
+        db_session.commit()
+    db_session.rollback()
+    assert exc_info.value.orig.diag.constraint_name == "fk_interviews_owner_application"
+
+
+def test_user_deletion_still_cascades_through_business_hierarchy(
+    db_session: Session,
+    user: User,
+):
+    company = Company(owner_id=user.id, name="Cascade Company")
+    db_session.add(company)
+    db_session.flush()
+    job = Job(owner_id=user.id, company_id=company.id, title="Cascade Job")
+    db_session.add(job)
+    db_session.flush()
+    application = Application(
+        owner_id=user.id,
+        job_id=job.id,
+        status="screening",
+    )
+    db_session.add(application)
+    db_session.flush()
+    scheduled_at = datetime.now(UTC) + timedelta(days=1)
+    interview = Interview(
+        owner_id=user.id,
+        application_id=application.id,
+        interview_type="technical",
+        status="scheduled",
+        scheduled_at=scheduled_at,
+        scheduled_end_at=scheduled_at + timedelta(hours=1),
+        duration_minutes=60,
+    )
+    db_session.add(interview)
+    db_session.commit()
+    ids = (company.id, job.id, application.id, interview.id)
+
+    db_session.delete(user)
+    db_session.commit()
+    db_session.expire_all()
+
+    assert db_session.get(Company, ids[0]) is None
+    assert db_session.get(Job, ids[1]) is None
+    assert db_session.get(Application, ids[2]) is None
+    assert db_session.get(Interview, ids[3]) is None

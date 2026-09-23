@@ -38,6 +38,7 @@ DOCUMENTS.extend(
         "0004-owner-scoped-not-found.md",
         "0005-application-status-locking.md",
         "0006-interview-overlap-exclusion.md",
+        "0007-composite-owner-foreign-keys.md",
     )
 )
 MARKDOWN_LINK = re.compile(r"(?<!!)\[[^]]+\]\(([^)]+)\)")

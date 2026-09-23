@@ -248,6 +248,12 @@ operations explicitly commit only after all required mutations are ready and
 roll back when persistence fails. Alembic migrations are the source of truth
 for schema changes.
 
+Business children retain an `owner_id` for direct authorization filters.
+Composite foreign keys pair that owner with the parent ID, so Job→Company,
+Application→Job, and Interview→Application ownership cannot diverge even when
+a write bypasses the Service layer. See
+[ADR 0007](docs/decisions/0007-composite-owner-foreign-keys.md).
+
 Production releases should run migrations once before starting new application
 workers. Do not let every worker race to apply schema changes.
 

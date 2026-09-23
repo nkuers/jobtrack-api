@@ -150,6 +150,8 @@ generated request/response contracts.
 
 - `owner_id` always comes from the authenticated user, never the request body.
 - Missing and foreign-owned resources both return `404`.
+- Composite foreign keys prevent a child row from referencing another user's
+  Company, Job, or Application even when writes bypass the API.
 - Company deletion is blocked while Jobs exist; Job deletion is blocked while
   an Application exists; Application deletion is blocked while Interviews
   exist.

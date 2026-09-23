@@ -4,6 +4,7 @@ from sqlalchemy import (
     CheckConstraint,
     DateTime,
     ForeignKey,
+    ForeignKeyConstraint,
     Index,
     Integer,
     String,
@@ -38,7 +39,6 @@ class Interview(Base):
         nullable=False,
     )
     application_id: Mapped[int] = mapped_column(
-        ForeignKey("applications.id", ondelete="RESTRICT"),
         nullable=False,
     )
     interview_type: Mapped[str] = mapped_column(String(30), nullable=False)
@@ -67,6 +67,12 @@ class Interview(Base):
     )
 
     __table_args__ = (
+        ForeignKeyConstraint(
+            ["owner_id", "application_id"],
+            ["applications.owner_id", "applications.id"],
+            name="fk_interviews_owner_application",
+            ondelete="RESTRICT",
+        ),
         CheckConstraint(
             f"interview_type IN ({INTERVIEW_TYPE_SQL})",
             name="ck_interviews_type",

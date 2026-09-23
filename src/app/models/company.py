@@ -1,6 +1,6 @@
 from datetime import UTC, datetime
 
-from sqlalchemy import DateTime, ForeignKey, Index, String, Text, text
+from sqlalchemy import DateTime, ForeignKey, Index, String, Text, UniqueConstraint, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -9,6 +9,11 @@ from app.db.base import Base
 class Company(Base):
     __tablename__ = "companies"
     __table_args__ = (
+        UniqueConstraint(
+            "owner_id",
+            "id",
+            name="uq_companies_owner_id",
+        ),
         Index(
             "uq_companies_owner_name_normalized",
             "owner_id",

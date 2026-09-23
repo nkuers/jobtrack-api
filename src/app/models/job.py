@@ -5,9 +5,11 @@ from sqlalchemy import (
     CheckConstraint,
     DateTime,
     ForeignKey,
+    ForeignKeyConstraint,
     Index,
     String,
     Text,
+    UniqueConstraint,
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -17,6 +19,17 @@ from app.db.base import Base
 class Job(Base):
     __tablename__ = "jobs"
     __table_args__ = (
+        UniqueConstraint(
+            "owner_id",
+            "id",
+            name="uq_jobs_owner_id",
+        ),
+        ForeignKeyConstraint(
+            ["owner_id", "company_id"],
+            ["companies.owner_id", "companies.id"],
+            name="fk_jobs_owner_company",
+            ondelete="RESTRICT",
+        ),
         CheckConstraint(
             "employment_type IN "
             "('full_time', 'part_time', 'contract', 'internship', 'temporary')",
@@ -57,7 +70,6 @@ class Job(Base):
         nullable=False,
     )
     company_id: Mapped[int] = mapped_column(
-        ForeignKey("companies.id", ondelete="RESTRICT"),
         nullable=False,
     )
     title: Mapped[str] = mapped_column(String(200), nullable=False)

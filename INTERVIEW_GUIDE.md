@@ -87,9 +87,12 @@ invalidation. Redis errors fall back to PostgreSQL.
 ### Why duplicate `owner_id` on child tables?
 
 It makes every public query independently owner-scoped and supports useful
-compound indexes. The Service still validates parent ownership. The trade-off
-is duplicated ownership data, so clients can never set it and all writes derive
-it from the authenticated user.
+compound indexes. The Service validates parent ownership to return a stable
+owner-scoped `404`, and composite foreign keys independently prevent the stored
+parent and child owners from diverging. The trade-off is duplicated ownership
+data plus parent-side unique indexes, so clients can never set `owner_id` and
+all writes derive it from the authenticated user. See
+[ADR 0007](docs/decisions/0007-composite-owner-foreign-keys.md).
 
 ### Why strings and checks instead of PostgreSQL enums?
 
