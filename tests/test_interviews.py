@@ -164,6 +164,43 @@ def test_create_interview_requires_owned_application_and_binds_owner(
     assert interview.scheduled_end_at == interview.scheduled_at + timedelta(hours=1)
 
 
+def test_interview_responses_include_application_job_and_company_summaries(
+    client: TestClient,
+    auth_headers: dict[str, str],
+):
+    application = create_application(client, auth_headers, "Read Model")
+    created = create_interview(
+        client,
+        auth_headers,
+        application["id"],
+        datetime.now(UTC) + timedelta(days=2),
+    )
+    expected_summary = {
+        "id": application["id"],
+        "job_id": application["job_id"],
+        "status": "screening",
+        "priority": 3,
+        "job_summary": application["job_summary"],
+    }
+
+    assert created["application_summary"] == expected_summary
+
+    fetched = client.get(
+        f"/api/v1/interviews/{created['id']}",
+        headers=auth_headers,
+    )
+    assert fetched.status_code == 200
+    assert fetched.json()["application_summary"] == expected_summary
+
+    listed = client.get("/api/v1/interviews", headers=auth_headers)
+    assert listed.status_code == 200
+    assert listed.json()["items"][0]["application_summary"] == expected_summary
+
+    upcoming = client.get("/api/v1/interviews/upcoming", headers=auth_headers)
+    assert upcoming.status_code == 200
+    assert upcoming.json()[0]["application_summary"] == expected_summary
+
+
 @pytest.mark.parametrize("status", ["screening", "interview", "offer"])
 def test_create_interview_accepts_active_recruitment_stages(
     client: TestClient,
@@ -571,6 +608,26 @@ def test_list_filters_by_application_and_status(
         params={"status": "cancelled"},
     )
     assert [item["id"] for item in cancelled.json()["items"]] == [second["id"]]
+
+    visible_range = client.get(
+        "/api/v1/interviews",
+        headers=auth_headers,
+        params={
+            "scheduled_from": (start - timedelta(minutes=30)).isoformat(),
+            "scheduled_to": (start + timedelta(minutes=90)).isoformat(),
+        },
+    )
+    assert [item["id"] for item in visible_range.json()["items"]] == [first["id"]]
+
+    invalid_range = client.get(
+        "/api/v1/interviews",
+        headers=auth_headers,
+        params={
+            "scheduled_from": (start + timedelta(days=1)).isoformat(),
+            "scheduled_to": start.isoformat(),
+        },
+    )
+    assert invalid_range.status_code == 409
 
 
 def test_interview_crud_is_owner_scoped(

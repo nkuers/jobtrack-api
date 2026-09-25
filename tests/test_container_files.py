@@ -27,8 +27,10 @@ def test_compose_runs_migrations_before_the_api_with_runtime_hardening():
 
     assert "service_completed_successfully" in compose
     assert 'command: ["alembic", "upgrade", "head"]' in compose
-    assert compose.count("read_only: true") == 2
-    assert compose.count("no-new-privileges:true") == 2
+    assert "context: ./frontend" in compose
+    assert "image: jobtrack-frontend:local" in compose
+    assert compose.count("read_only: true") == 3
+    assert compose.count("no-new-privileges:true") == 3
 
 
 def test_production_environment_uses_distributed_fail_closed_rate_limits():

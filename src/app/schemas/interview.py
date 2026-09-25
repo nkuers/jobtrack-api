@@ -11,6 +11,8 @@ from pydantic import (
     field_validator,
 )
 
+from app.schemas.application import ApplicationSummary
+
 
 class InterviewType(StrEnum):
     PHONE_SCREEN = "phone_screen"
@@ -102,6 +104,7 @@ class InterviewResponse(BaseModel):
     feedback: str | None = None
     created_at: datetime
     updated_at: datetime
+    application_summary: ApplicationSummary = Field(validation_alias="application")
 
     model_config = ConfigDict(from_attributes=True)
 

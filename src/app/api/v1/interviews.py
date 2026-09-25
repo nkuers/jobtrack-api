@@ -38,6 +38,8 @@ def create_interview(
 def list_interviews(
     application_id: Annotated[int | None, Query(gt=0)] = None,
     interview_status: Annotated[InterviewStatus | None, Query(alias="status")] = None,
+    scheduled_from: AwareDatetime | None = None,
+    scheduled_to: AwareDatetime | None = None,
     page: Annotated[int, Query(ge=1)] = 1,
     page_size: Annotated[int, Query(ge=1, le=100)] = 20,
     current_user: User = Depends(get_current_user),
@@ -47,6 +49,8 @@ def list_interviews(
         current_user.id,
         application_id=application_id,
         status=interview_status,
+        scheduled_from=scheduled_from,
+        scheduled_to=scheduled_to,
         page=page,
         page_size=page_size,
     )

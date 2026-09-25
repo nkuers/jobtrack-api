@@ -105,13 +105,23 @@ class InterviewService:
         *,
         application_id: int | None,
         status: str | None,
+        scheduled_from: datetime | None,
+        scheduled_to: datetime | None,
         page: int,
         page_size: int,
     ) -> InterviewListResponse:
+        if (
+            scheduled_from is not None
+            and scheduled_to is not None
+            and scheduled_from >= scheduled_to
+        ):
+            raise ResourceConflictError("scheduled_from must be before scheduled_to")
         interviews, total = self.repository.list_owned(
             owner_id,
             application_id=application_id,
             status=status,
+            scheduled_from=scheduled_from,
+            scheduled_to=scheduled_to,
             page=page,
             page_size=page_size,
         )

@@ -1,5 +1,5 @@
 from sqlalchemy import func, or_, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from app.models.application import Application
 from app.models.job import Job
@@ -25,7 +25,9 @@ class JobRepository:
 
     def get_owned(self, job_id: int, owner_id: int) -> Job | None:
         return self.db.scalar(
-            select(Job).where(Job.id == job_id, Job.owner_id == owner_id)
+            select(Job)
+            .options(selectinload(Job.company))
+            .where(Job.id == job_id, Job.owner_id == owner_id)
         )
 
     def list_owned(
@@ -65,6 +67,7 @@ class JobRepository:
         )
         statement = (
             select(Job)
+            .options(selectinload(Job.company))
             .where(*filters)
             .order_by(order_expression, Job.id.desc())
             .offset((page - 1) * page_size)

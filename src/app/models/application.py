@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 from datetime import UTC, date, datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import (
     CheckConstraint,
@@ -12,9 +15,12 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
 )
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
+
+if TYPE_CHECKING:
+    from app.models.job import Job
 
 APPLICATION_STATUSES = (
     "saved",
@@ -97,3 +103,4 @@ class Application(Base):
         onupdate=lambda: datetime.now(UTC),
         nullable=False,
     )
+    job: Mapped[Job] = relationship(viewonly=True)

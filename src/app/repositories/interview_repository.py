@@ -1,9 +1,11 @@
 from datetime import datetime, timedelta
 
 from sqlalchemy import func, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
+from app.models.application import Application
 from app.models.interview import Interview
+from app.models.job import Job
 
 
 class InterviewRepository:
@@ -19,7 +21,9 @@ class InterviewRepository:
 
     def get_owned(self, interview_id: int, owner_id: int) -> Interview | None:
         return self.db.scalar(
-            select(Interview).where(
+            select(Interview)
+            .options(self._read_model_options())
+            .where(
                 Interview.id == interview_id,
                 Interview.owner_id == owner_id,
             )
@@ -31,6 +35,8 @@ class InterviewRepository:
         *,
         application_id: int | None,
         status: str | None,
+        scheduled_from: datetime | None,
+        scheduled_to: datetime | None,
         page: int,
         page_size: int,
     ) -> tuple[list[Interview], int]:
@@ -39,12 +45,17 @@ class InterviewRepository:
             filters.append(Interview.application_id == application_id)
         if status is not None:
             filters.append(Interview.status == status)
+        if scheduled_from is not None:
+            filters.append(Interview.scheduled_end_at > scheduled_from)
+        if scheduled_to is not None:
+            filters.append(Interview.scheduled_at < scheduled_to)
 
         total = self.db.scalar(
             select(func.count()).select_from(Interview).where(*filters)
         )
         statement = (
             select(Interview)
+            .options(self._read_model_options())
             .where(*filters)
             .order_by(Interview.scheduled_at.asc(), Interview.id.asc())
             .offset((page - 1) * page_size)
@@ -69,6 +80,7 @@ class InterviewRepository:
             filters.append(Interview.scheduled_at <= until)
         statement = (
             select(Interview)
+            .options(self._read_model_options())
             .where(*filters)
             .order_by(Interview.scheduled_at.asc(), Interview.id.asc())
             .limit(limit)
@@ -108,3 +120,17 @@ class InterviewRepository:
     def delete(self, interview: Interview) -> None:
         self.db.delete(interview)
         self.db.flush()
+
+    @staticmethod
+    def _read_model_options():
+        return (
+            joinedload(Interview.application, innerjoin=True)
+            .joinedload(
+                Application.job,
+                innerjoin=True,
+            )
+            .joinedload(
+                Job.company,
+                innerjoin=True,
+            )
+        )

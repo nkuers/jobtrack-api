@@ -1,7 +1,7 @@
 from datetime import date, datetime
 
 from sqlalchemy import func, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.models.application import Application
 from app.models.application_status_history import ApplicationStatusHistory
@@ -30,7 +30,14 @@ class ApplicationRepository:
 
     def get_owned(self, application_id: int, owner_id: int) -> Application | None:
         return self.db.scalar(
-            select(Application).where(
+            select(Application)
+            .options(
+                joinedload(Application.job, innerjoin=True).joinedload(
+                    Job.company,
+                    innerjoin=True,
+                )
+            )
+            .where(
                 Application.id == application_id,
                 Application.owner_id == owner_id,
             )
@@ -101,6 +108,12 @@ class ApplicationRepository:
         )
         statement = (
             select(Application)
+            .options(
+                joinedload(Application.job, innerjoin=True).joinedload(
+                    Job.company,
+                    innerjoin=True,
+                )
+            )
             .join(Job, Job.id == Application.job_id)
             .where(*filters)
             .order_by(order_expression, Application.id.desc())

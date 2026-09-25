@@ -11,7 +11,8 @@ python scripts/dev.py stack-up
 
 Compose waits for PostgreSQL and Redis, runs `alembic upgrade head` in the
 one-shot `migrate` service, and starts the API only after migration succeeds.
-Open <http://127.0.0.1:8000/docs> and confirm `/health/ready` is healthy.
+It also serves the Web client from the non-root frontend container. Open
+<http://127.0.0.1:3000> and confirm <http://127.0.0.1:8000/health/ready> is healthy.
 
 Optional demo data is never created during application startup or migration.
 Create it only with the explicit command:
@@ -30,6 +31,51 @@ password: JobTrackDemo123!
 
 Use `--username` and `--password` directly with `scripts/seed_demo.py` when a
 different disposable identity is required.
+
+For frontend hot reload instead of the Compose frontend, stop that service and
+start Vite in another terminal:
+
+```bash
+cd frontend
+npm run dev
+```
+
+Sign in at <http://127.0.0.1:3000> with the disposable demo credentials.
+The Dashboard badge makes it clear that this account contains seeded data.
+
+## Web product walkthrough
+
+Use the browser UI for the main interview story:
+
+1. Start on **Dashboard** and explain that every KPI, status count, interview,
+   and action comes from `GET /api/v1/dashboard`; no trend data is invented in
+   the browser.
+2. Open a status row or KPI card to show URL-backed filtering, then open an
+   Application and its server-backed status timeline.
+3. Follow the linked Job and Company summaries to show that list and dashboard
+   read models avoid client-side N+1 requests.
+4. Open **Applications → Board** and perform one legal status transition. Point
+   out that available actions follow the backend state machine.
+5. Open **Interviews**, switch between month/week/list views, and create an
+   interview. An overlapping time returns a visible `409` without leaving a
+   phantom event in the calendar.
+6. Open **Settings → Security** to show the real MFA status and active device
+   sessions. The UI deliberately does not guess which session is the current
+   device because the API does not expose that fact.
+7. Toggle the dark theme and narrow the browser once to demonstrate responsive
+   navigation and mobile-friendly cards.
+
+For the complete MFA story, use a disposable account: enter the current
+password, scan the browser-generated QR code, confirm a TOTP, and save the
+one-time recovery codes before closing the dialog. The TOTP secret never goes
+to an external QR service. Regenerating recovery codes lets the user save the
+new codes before the UI clears local authentication; disabling MFA or revoking
+all sessions returns to login immediately. A single-session revoke always asks
+for confirmation and refreshes the list without falsely labeling a current
+device.
+
+Keep Swagger for the lower-level security and operations evidence below; the
+Web UI is the primary product demonstration.
 
 ## Business walkthrough
 
@@ -89,7 +135,9 @@ and Dashboard cache outcomes. Metrics never use user IDs as labels.
 
 Finally, open [.github/workflows/ci.yml](.github/workflows/ci.yml) and show the
 PostgreSQL/Redis services, migration, Ruff, pytest coverage gate, dependency
-audit, package build, non-root image build, and container health smoke test.
+audit, package build, Playwright real-browser flow, failure artifacts, non-root
+API/frontend image builds, SPA fallback, security headers, and container health
+smoke tests.
 
 ## Cleanup
 

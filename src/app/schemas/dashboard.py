@@ -2,8 +2,9 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.schemas.application import ApplicationStatus
+from app.schemas.application import ApplicationStatus, ApplicationSummary
 from app.schemas.interview import InterviewType
+from app.schemas.job import JobSummary
 
 
 class DashboardInterview(BaseModel):
@@ -12,6 +13,7 @@ class DashboardInterview(BaseModel):
     interview_type: InterviewType
     scheduled_at: datetime
     duration_minutes: int
+    application_summary: ApplicationSummary = Field(validation_alias="application")
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -21,6 +23,7 @@ class DashboardAction(BaseModel):
     job_id: int
     status: ApplicationStatus
     next_action_at: datetime
+    job_summary: JobSummary
 
     model_config = ConfigDict(from_attributes=True)
 

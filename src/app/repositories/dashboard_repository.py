@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 
 from sqlalchemy import distinct, func, or_, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.models.application import Application
 from app.models.application_status_history import ApplicationStatusHistory
@@ -14,6 +14,7 @@ from app.schemas.dashboard import (
     DashboardInterview,
     DashboardResponse,
 )
+from app.schemas.job import JobSummary
 
 ACTIONABLE_STATUSES = (
     ApplicationStatus.SAVED.value,
@@ -87,6 +88,11 @@ class DashboardRepository:
         horizon = now + timedelta(days=7)
         interview_rows = self.db.scalars(
             select(Interview)
+            .options(
+                joinedload(Interview.application, innerjoin=True)
+                .joinedload(Application.job, innerjoin=True)
+                .joinedload(Job.company, innerjoin=True)
+            )
             .where(
                 Interview.owner_id == owner_id,
                 Interview.status == "scheduled",
@@ -130,10 +136,19 @@ class DashboardRepository:
 
     @staticmethod
     def _action_query(owner_id: int):
-        return select(Application).where(
-            Application.owner_id == owner_id,
-            Application.status.in_(ACTIONABLE_STATUSES),
-            Application.next_action_at.is_not(None),
+        return (
+            select(Application)
+            .options(
+                joinedload(Application.job, innerjoin=True).joinedload(
+                    Job.company,
+                    innerjoin=True,
+                )
+            )
+            .where(
+                Application.owner_id == owner_id,
+                Application.status.in_(ACTIONABLE_STATUSES),
+                Application.next_action_at.is_not(None),
+            )
         )
 
     @staticmethod
@@ -143,4 +158,5 @@ class DashboardRepository:
             job_id=application.job_id,
             status=application.status,
             next_action_at=application.next_action_at,
+            job_summary=JobSummary.model_validate(application.job),
         )

@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 from datetime import UTC, datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import (
     CheckConstraint,
@@ -12,9 +15,12 @@ from sqlalchemy import (
     text,
 )
 from sqlalchemy.dialects.postgresql import ExcludeConstraint
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
+
+if TYPE_CHECKING:
+    from app.models.application import Application
 
 INTERVIEW_TYPES = (
     "phone_screen",
@@ -102,3 +108,4 @@ class Interview(Base):
             "ix_interviews_owner_status_scheduled", "owner_id", "status", "scheduled_at"
         ),
     )
+    application: Mapped[Application] = relationship(viewonly=True)

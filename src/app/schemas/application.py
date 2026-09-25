@@ -11,6 +11,8 @@ from pydantic import (
     model_validator,
 )
 
+from app.schemas.job import JobSummary
+
 Priority = Annotated[int, Field(ge=1, le=5)]
 Notes = Annotated[str, Field(max_length=10000)]
 
@@ -132,6 +134,17 @@ class ApplicationResponse(BaseModel):
     notes: str | None = None
     created_at: datetime
     updated_at: datetime
+    job_summary: JobSummary = Field(validation_alias="job")
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ApplicationSummary(BaseModel):
+    id: int
+    job_id: int
+    status: ApplicationStatus
+    priority: int
+    job_summary: JobSummary = Field(validation_alias="job")
 
     model_config = ConfigDict(from_attributes=True)
 

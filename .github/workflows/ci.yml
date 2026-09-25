@@ -18,7 +18,7 @@ jobs:
   quality-and-test:
     name: Quality, tests, and package
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
 
     services:
       postgres:
@@ -70,6 +70,32 @@ jobs:
       - name: Install locked dependencies
         run: uv sync --locked --all-groups
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Generate and verify frontend API contract
+        working-directory: frontend
+        run: |
+          npm run generate:api
+          git diff --exit-code -- openapi.json src/api/schema.d.ts
+
+      - name: Check frontend quality
+        working-directory: frontend
+        run: |
+          npm run lint
+          npm run format:check
+          npm run typecheck
+          npm run test:run
+          npm run build
+
       - name: Lint
         run: uv run ruff check .
 
@@ -81,6 +107,49 @@ jobs:
 
       - name: Run tests
         run: uv run pytest --cov-report=xml
+
+      - name: Start API for browser tests
+        run: |
+          uv run uvicorn app.main:app --host 127.0.0.1 --port 8000 >/tmp/jobtrack-e2e-api.log 2>&1 &
+          echo $! >/tmp/jobtrack-e2e-api.pid
+          for attempt in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:8000/health/ready; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/jobtrack-e2e-api.log
+          exit 1
+
+      - name: Install Playwright browser
+        working-directory: frontend
+        run: npm run test:e2e:install
+
+      - name: Run browser end-to-end test
+        working-directory: frontend
+        run: npm run test:e2e
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report
+          path: |
+            frontend/playwright-report
+            frontend/test-results
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Show browser-test API logs
+        if: failure()
+        run: cat /tmp/jobtrack-e2e-api.log
+
+      - name: Stop browser-test API
+        if: always()
+        run: |
+          if test -f /tmp/jobtrack-e2e-api.pid; then
+            kill "$(cat /tmp/jobtrack-e2e-api.pid)" 2>/dev/null || true
+          fi
 
       - name: Run database benchmark smoke test
         run: |
@@ -131,6 +200,46 @@ jobs:
 
       - name: Build production container image
         run: docker build --tag jobtrack-api:ci .
+
+      - name: Build frontend container image
+        run: docker build --tag jobtrack-frontend:ci frontend
+
+      - name: Verify frontend container identity and dependencies
+        run: |
+          test "$(docker run --rm --entrypoint id jobtrack-frontend:ci -u)" != "0"
+          docker run --rm --entrypoint sh jobtrack-frontend:ci -c "! command -v node"
+
+      - name: Smoke-test frontend container and SPA fallback
+        run: |
+          docker run --detach \
+            --name jobtrack-frontend-ci \
+            --add-host api:127.0.0.1 \
+            --publish 3000:8080 \
+            --read-only \
+            --tmpfs /tmp \
+            --tmpfs /var/cache/nginx \
+            --tmpfs /var/run \
+            --cap-drop ALL \
+            --security-opt no-new-privileges:true \
+            jobtrack-frontend:ci
+
+          for attempt in {1..20}; do
+            if curl --fail --silent http://127.0.0.1:3000/ \
+              | grep --quiet "JobTrack"; then
+              curl --fail --silent http://127.0.0.1:3000/settings/security \
+                | grep --quiet "JobTrack"
+              curl --fail --silent --head http://127.0.0.1:3000/ \
+                | grep --ignore-case --quiet "content-security-policy"
+              exit 0
+            fi
+            sleep 1
+          done
+          docker logs jobtrack-frontend-ci
+          exit 1
+
+      - name: Remove frontend container
+        if: always()
+        run: docker rm --force jobtrack-frontend-ci 2>/dev/null || true
 
       - name: Verify production container identity and dependencies
         run: |

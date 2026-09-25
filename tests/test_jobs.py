@@ -131,6 +131,10 @@ def test_job_crud_and_partial_update(
     fetched = client.get(f"/api/v1/jobs/{created['id']}", headers=auth_headers)
     assert fetched.status_code == 200
     assert fetched.json()["salary_min"] == 2_000_000
+    assert fetched.json()["company_summary"] == {
+        "id": first_company["id"],
+        "name": "Acme",
+    }
 
     updated = client.patch(
         f"/api/v1/jobs/{created['id']}",
@@ -254,6 +258,10 @@ def test_list_jobs_is_scoped_filterable_paginated_and_safely_sorted(
     assert response.status_code == 200
     assert response.json()["total"] == 2
     assert [item["id"] for item in response.json()["items"]] == [second["id"]]
+    assert response.json()["items"][0]["company_summary"] == {
+        "id": acme["id"],
+        "name": "Acme",
+    }
 
     next_page = client.get(
         "/api/v1/jobs",

@@ -11,6 +11,8 @@ from pydantic import (
     model_validator,
 )
 
+from app.schemas.company import CompanySummary
+
 JobTitle = Annotated[str, Field(min_length=1, max_length=200)]
 Location = Annotated[str, Field(min_length=1, max_length=255)]
 Source = Annotated[str, Field(min_length=1, max_length=100)]
@@ -175,8 +177,19 @@ class JobResponse(BaseModel):
     salary_currency: str
     description: str | None = None
     status: JobStatus
+    company_summary: CompanySummary = Field(validation_alias="company")
     created_at: datetime
     updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class JobSummary(BaseModel):
+    id: int
+    company_id: int
+    title: str
+    status: JobStatus
+    company_summary: CompanySummary = Field(validation_alias="company")
 
     model_config = ConfigDict(from_attributes=True)
 

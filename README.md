@@ -1,4 +1,4 @@
-# JobTrack API
+# JobTrack
 
 [![CI](https://github.com/nkuers/jobtrack-api/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/nkuers/jobtrack-api/actions/workflows/ci.yml)
 [![Python 3.13](https://img.shields.io/badge/Python-3.13-3776AB?logo=python&logoColor=white)](https://www.python.org/)
@@ -6,14 +6,14 @@
 [![PostgreSQL 17](https://img.shields.io/badge/PostgreSQL-17-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-JobTrack is a production-oriented backend for organizing companies, job
-opportunities, applications, status history, interviews, follow-up actions, and
-personal funnel statistics.
+JobTrack is a production-oriented full-stack application for organizing
+companies, job opportunities, applications, status history, interviews,
+follow-up actions, security settings, and personal funnel statistics.
 
-The project focuses on the backend questions that appear after basic CRUD:
+Its React web client sits on the same production concerns as the FastAPI API:
 owner isolation, state-machine invariants, transaction boundaries, concurrent
-updates, time zones, query/index design, cache consistency, rate limiting,
-failure recovery, and operational evidence.
+updates, time zones, cache consistency, rotating sessions, MFA, failure
+recovery, and operational evidence.
 
 ## What JobTrack can do
 
@@ -53,7 +53,8 @@ written from scratch.
 
 ```mermaid
 flowchart LR
-    Client["Web / API client"] --> API["FastAPI routers"]
+    Browser["React SPA"] --> Nginx["Nginx / same-origin proxy"]
+    Nginx --> API["FastAPI routers"]
     API --> Auth["JWT current-user dependency"]
     API --> Service["Business services and transactions"]
     Service --> Repository["Owner-scoped repositories"]
@@ -100,6 +101,7 @@ python scripts/dev.py serve
 
 Open:
 
+- Web application: <http://127.0.0.1:3000>
 - Swagger UI: <http://127.0.0.1:8000/docs>
 - ReDoc: <http://127.0.0.1:8000/redoc>
 - readiness: <http://127.0.0.1:8000/health/ready>
@@ -111,6 +113,8 @@ migration service before the API becomes eligible to start:
 ```bash
 python scripts/dev.py stack-up
 ```
+
+Compose builds the React client and serves it from a non-root Nginx container.
 
 ## Optional demonstration data
 
@@ -192,10 +196,11 @@ GitHub Actions runs:
 1. Ruff lint and format checks;
 2. Alembic upgrade;
 3. pytest with coverage artifact;
-4. sync/async database benchmark correctness smoke;
-5. dependency audit;
-6. wheel build and isolated import smoke;
-7. non-root production image build and live/ready smoke test.
+4. frontend contract generation, lint, formatting, type checks, integration tests, and build;
+5. Playwright against the real API, with failure artifacts;
+6. sync/async database benchmark correctness smoke and dependency audits;
+7. wheel build and isolated import smoke;
+8. non-root API and frontend image builds with health, SPA, and security-header smoke tests.
 
 ## Performance and resilience
 
@@ -227,6 +232,7 @@ scripts/              Development and explicit demo commands
 tests/                Unit and real PostgreSQL/Redis integration tests
 docs/decisions/       Architecture decision records
 load_tests/           Guarded k6 scenarios
+frontend/             React SPA, Playwright tests, and Nginx production image
 ```
 
 ## Documentation
@@ -246,7 +252,8 @@ load_tests/           Guarded k6 scenarios
 
 ## Known limitations
 
-- The application is a backend API; it does not include a frontend.
+- Playwright currently targets Chromium; Firefox and WebKit are not yet part of
+  the CI browser matrix.
 - Offset pagination is appropriate for the current scope but should become
   cursor-based for deep, high-volume histories.
 - Interview overlap is protected twice: the Service returns an early friendly

@@ -1,0 +1,246 @@
+@import 'tailwindcss';
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  font-family:
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
+  color: #0f172a;
+  background: #f8fafc;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+.dark {
+  color-scheme: dark;
+}
+
+button,
+a,
+input,
+textarea,
+select {
+  outline-offset: 3px;
+}
+
+:focus-visible {
+  outline: 2px solid #34d399;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+@layer components {
+  .button-primary {
+    @apply inline-flex min-h-10 items-center justify-center rounded-xl bg-emerald-400 px-4 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .button-secondary {
+    @apply inline-flex min-h-10 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800;
+  }
+
+  .button-danger {
+    @apply inline-flex min-h-10 items-center justify-center rounded-xl border border-rose-300 bg-white px-4 py-2.5 text-sm font-medium text-rose-700 transition hover:bg-rose-50 disabled:opacity-60 dark:border-rose-900 dark:bg-slate-900 dark:text-rose-300 dark:hover:bg-rose-950/40;
+  }
+
+  .page-title {
+    @apply mt-1 text-3xl font-semibold tracking-tight;
+  }
+
+  .page-description {
+    @apply mt-2 text-sm text-slate-500 dark:text-slate-400;
+  }
+
+  .section-kicker {
+    @apply text-sm font-semibold text-emerald-600 dark:text-emerald-300;
+  }
+
+  .filter-bar {
+    @apply mt-7 flex flex-wrap gap-2 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm dark:border-white/10 dark:bg-slate-900;
+  }
+
+  .filter-input {
+    @apply min-h-10 min-w-36 flex-1 rounded-xl border border-slate-300 bg-white px-3 text-sm outline-none focus:border-emerald-500 dark:border-slate-700 dark:bg-slate-950;
+  }
+
+  .data-table-wrap {
+    @apply overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-slate-900;
+  }
+
+  .data-table {
+    @apply w-full border-collapse text-left text-sm;
+  }
+
+  .data-table th {
+    @apply border-b border-slate-200 bg-slate-50 px-4 py-3 font-medium text-slate-500 dark:border-white/10 dark:bg-white/[0.03];
+  }
+
+  .data-table td {
+    @apply border-b border-slate-100 px-4 py-3.5 text-slate-600 last:text-right dark:border-white/5 dark:text-slate-300;
+  }
+
+  .data-table tr:last-child td {
+    @apply border-b-0;
+  }
+
+  .list-card {
+    @apply flex items-center justify-between rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-emerald-400 dark:border-white/10 dark:bg-slate-900;
+  }
+
+  .text-link {
+    @apply font-medium text-emerald-700 hover:text-emerald-600 dark:text-emerald-300 dark:hover:text-emerald-200;
+  }
+
+  .field-label {
+    @apply block text-sm font-medium;
+  }
+
+  .field-error {
+    @apply mt-1.5 block text-xs text-rose-600 dark:text-rose-300;
+  }
+
+  .error-box {
+    @apply rounded-xl border border-rose-300 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-400/20 dark:bg-rose-400/10 dark:text-rose-200;
+  }
+
+  .detail-grid {
+    @apply grid gap-px overflow-hidden rounded-2xl border border-slate-200 bg-slate-200 sm:grid-cols-2 dark:border-white/10 dark:bg-white/10;
+  }
+
+  .detail-grid > div {
+    @apply bg-white p-5 dark:bg-slate-900;
+  }
+
+  .detail-grid dt {
+    @apply text-xs font-medium uppercase tracking-wide text-slate-500;
+  }
+
+  .detail-grid dd {
+    @apply mt-2 text-sm;
+  }
+
+  .status-badge {
+    @apply inline-flex rounded-full px-2.5 py-1 text-xs font-medium;
+  }
+
+  .status-open {
+    @apply bg-emerald-100 text-emerald-700 dark:bg-emerald-400/15 dark:text-emerald-300;
+  }
+
+  .status-paused {
+    @apply bg-amber-100 text-amber-700 dark:bg-amber-400/15 dark:text-amber-300;
+  }
+
+  .status-closed {
+    @apply bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300;
+  }
+
+  .app-saved {
+    @apply bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200;
+  }
+
+  .app-applied {
+    @apply bg-sky-100 text-sky-700 dark:bg-sky-400/15 dark:text-sky-300;
+  }
+
+  .app-screening {
+    @apply bg-cyan-100 text-cyan-700 dark:bg-cyan-400/15 dark:text-cyan-300;
+  }
+
+  .app-interview {
+    @apply bg-violet-100 text-violet-700 dark:bg-violet-400/15 dark:text-violet-300;
+  }
+
+  .app-offer {
+    @apply bg-emerald-100 text-emerald-700 dark:bg-emerald-400/15 dark:text-emerald-300;
+  }
+
+  .app-rejected {
+    @apply bg-rose-100 text-rose-700 dark:bg-rose-400/15 dark:text-rose-300;
+  }
+
+  .app-withdrawn,
+  .app-archived {
+    @apply bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400;
+  }
+
+  .interview-scheduled {
+    @apply bg-violet-100 text-violet-700 dark:bg-violet-400/15 dark:text-violet-300;
+  }
+
+  .interview-completed {
+    @apply bg-emerald-100 text-emerald-700 dark:bg-emerald-400/15 dark:text-emerald-300;
+  }
+
+  .interview-cancelled {
+    @apply bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400;
+  }
+}
+
+.calendar-shell {
+  overflow: hidden;
+  border: 1px solid rgb(226 232 240);
+  border-radius: 1rem;
+  background: white;
+  padding: 1rem;
+  box-shadow: 0 1px 2px rgb(15 23 42 / 0.05);
+}
+
+.dark .calendar-shell {
+  border-color: rgb(255 255 255 / 0.1);
+  background: rgb(15 23 42);
+  --fc-page-bg-color: rgb(15 23 42);
+  --fc-neutral-bg-color: rgb(30 41 59);
+  --fc-border-color: rgb(51 65 85);
+  --fc-list-event-hover-bg-color: rgb(30 41 59);
+  color: rgb(226 232 240);
+}
+
+.calendar-shell .fc-event {
+  cursor: pointer;
+}
+
+@media (max-width: 640px) {
+  .calendar-shell {
+    padding: 0.5rem;
+  }
+
+  .calendar-shell .fc-header-toolbar {
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .calendar-shell .fc-toolbar-title {
+    font-size: 1rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

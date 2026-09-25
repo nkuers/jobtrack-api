@@ -8,7 +8,9 @@ HTTP concerns, business rules, persistence, and operations separate.
 
 ```mermaid
 flowchart LR
-    Client["API client"] --> Proxy["Trusted reverse proxy / TLS"]
+    Browser["React SPA"] --> Web["Non-root Nginx / SPA fallback"]
+    APIClient["API client"] --> Proxy["Trusted reverse proxy / TLS"]
+    Web --> Proxy
     Proxy --> App["FastAPI application"]
     App --> Auth["JWT, refresh tokens, and RBAC"]
     App --> DB[("PostgreSQL")]
@@ -103,6 +105,7 @@ sequenceDiagram
     participant R as Router
     participant S as Service
     participant P as Repository
+| Web client | `frontend/` | React routes, API/query integration, Playwright tests, and Nginx delivery |
     participant DB as PostgreSQL
     participant RC as Redis
 

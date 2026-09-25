@@ -135,6 +135,37 @@ def test_create_application_binds_owner_and_validates_job_ownership(
     assert application.owner_id == user.id
 
 
+def test_application_responses_include_job_and_company_summaries(
+    client: TestClient,
+    auth_headers: dict[str, str],
+):
+    company, job = create_job_for_user(client, auth_headers, "Read Model")
+    created = create_application(client, auth_headers, job["id"])
+    expected_summary = {
+        "id": job["id"],
+        "company_id": company["id"],
+        "title": "Job Read Model",
+        "status": "open",
+        "company_summary": {
+            "id": company["id"],
+            "name": "Company Read Model",
+        },
+    }
+
+    assert created["job_summary"] == expected_summary
+
+    fetched = client.get(
+        f"/api/v1/applications/{created['id']}",
+        headers=auth_headers,
+    )
+    assert fetched.status_code == 200
+    assert fetched.json()["job_summary"] == expected_summary
+
+    listed = client.get("/api/v1/applications", headers=auth_headers)
+    assert listed.status_code == 200
+    assert listed.json()["items"][0]["job_summary"] == expected_summary
+
+
 def test_duplicate_application_returns_conflict(
     client: TestClient,
     auth_headers: dict[str, str],

@@ -77,6 +77,13 @@ class CompanyResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class CompanySummary(BaseModel):
+    id: int
+    name: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class CompanyListResponse(BaseModel):
     items: list[CompanyResponse]
     total: int

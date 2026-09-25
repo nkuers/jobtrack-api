@@ -248,12 +248,18 @@ def test_dashboard_aggregates_owner_scoped_business_metrics(
     assert [item["id"] for item in payload["upcoming_interviews"]] == [
         interview.json()["id"]
     ]
+    assert (
+        payload["upcoming_interviews"][0]["application_summary"]["job_summary"]
+        == active["job_summary"]
+    )
     assert [item["application_id"] for item in payload["overdue_actions"]] == [
         overdue["id"]
     ]
+    assert payload["overdue_actions"][0]["job_summary"] == overdue["job_summary"]
     assert [item["application_id"] for item in payload["upcoming_actions"]] == [
         active["id"]
     ]
+    assert payload["upcoming_actions"][0]["job_summary"] == active["job_summary"]
 
 
 def test_business_writes_invalidate_the_owner_dashboard(
