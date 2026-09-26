@@ -96,6 +96,20 @@ export function LoginPage() {
             </span>
           )}
         </label>
+        <div className="flex flex-wrap justify-between gap-3 text-sm">
+          <Link
+            className="font-medium text-emerald-300 hover:text-emerald-200"
+            to="/verify-email"
+          >
+            重新发送验证邮件
+          </Link>
+          <Link
+            className="font-medium text-emerald-300 hover:text-emerald-200"
+            to="/forgot-password"
+          >
+            忘记密码？
+          </Link>
+        </div>
         <button
           className="button-primary w-full"
           type="submit"

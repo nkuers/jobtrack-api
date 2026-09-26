@@ -685,3 +685,89 @@ test('keeps sensitive-operation fields after a server rejection', async () => {
   expect(code).toHaveValue('654321')
   expect(screen.getByRole('dialog')).toBeInTheDocument()
 })
+
+test('requests a password reset with a normalized email and generic result', async () => {
+  server.use(
+    http.post('*/auth/password-reset/request', async ({ request }) => {
+      expect(await request.json()).toEqual({ email: 'user@example.com' })
+      return HttpResponse.json(
+        { message: 'If the account exists, reset instructions were sent' },
+        { status: 202 },
+      )
+    }),
+  )
+
+  renderApp('/forgot-password')
+  const actor = userEvent.setup()
+  await actor.type(await screen.findByLabelText('邮箱'), ' User@Example.COM ')
+  await actor.click(screen.getByRole('button', { name: '发送重置邮件' }))
+
+  expect(
+    await screen.findByText(/如果该邮箱符合条件，重置邮件会很快发送/),
+  ).toBeInTheDocument()
+})
+
+test('confirms email verification without exposing the token in the page', async () => {
+  const token = 'verification-token-that-is-at-least-thirty-two-characters'
+  server.use(
+    http.post('*/auth/email-verification/confirm', async ({ request }) => {
+      expect(await request.json()).toEqual({ token })
+      return HttpResponse.json({ message: 'Email verified' })
+    }),
+  )
+
+  renderApp(`/verify-email?token=${token}`)
+  const actor = userEvent.setup()
+  expect(await screen.findByText(/令牌已从地址栏移除/)).toBeInTheDocument()
+  expect(screen.queryByText(token)).not.toBeInTheDocument()
+  await actor.click(screen.getByRole('button', { name: '验证邮箱' }))
+
+  expect(await screen.findByText(/邮箱验证成功/)).toBeInTheDocument()
+})
+
+test('requests an email verification link with a generic result', async () => {
+  server.use(
+    http.post('*/auth/email-verification/request', async ({ request }) => {
+      expect(await request.json()).toEqual({ email: 'joker@example.com' })
+      return HttpResponse.json(
+        { message: 'If the account exists, verification was sent' },
+        { status: 202 },
+      )
+    }),
+  )
+
+  renderApp('/verify-email')
+  const actor = userEvent.setup()
+  await actor.type(await screen.findByLabelText('邮箱'), 'Joker@Example.com')
+  await actor.click(screen.getByRole('button', { name: '发送验证邮件' }))
+
+  expect(
+    await screen.findByText(/如果该邮箱符合条件，验证邮件会很快发送/),
+  ).toBeInTheDocument()
+})
+
+test('keeps new-password fields after a reset token is rejected', async () => {
+  const token = 'reset-token-that-is-at-least-thirty-two-characters-long'
+  server.use(
+    http.post('*/auth/password-reset/confirm', () =>
+      HttpResponse.json(
+        { detail: 'Invalid or expired reset token' },
+        { status: 400 },
+      ),
+    ),
+  )
+
+  renderApp(`/reset-password?token=${token}`)
+  const actor = userEvent.setup()
+  const password = await screen.findByLabelText('新密码')
+  const confirmation = screen.getByLabelText('确认新密码')
+  await actor.type(password, 'a-secure-password')
+  await actor.type(confirmation, 'a-secure-password')
+  await actor.click(screen.getByRole('button', { name: '更新密码' }))
+
+  expect(
+    await screen.findByText('Invalid or expired reset token'),
+  ).toBeInTheDocument()
+  expect(password).toHaveValue('a-secure-password')
+  expect(confirmation).toHaveValue('a-secure-password')
+})

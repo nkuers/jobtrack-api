@@ -65,6 +65,13 @@ Use the browser UI for the main interview story:
 7. Toggle the dark theme and narrow the browser once to demonstrate responsive
    navigation and mobile-friendly cards.
 
+To demonstrate account recovery without exposing whether an account exists,
+use the links on the login page. **Resend verification email** and **Forgot
+password** always show the same accepted result. Open the disposable email's
+verification or reset link and point out that the token is removed from the
+address bar before confirmation. A successful password reset revokes every
+refresh session and clears any local Web authentication state.
+
 For the complete MFA story, use a disposable account: enter the current
 password, scan the browser-generated QR code, confirm a TOTP, and save the
 one-time recovery codes before closing the dialog. The TOTP secret never goes

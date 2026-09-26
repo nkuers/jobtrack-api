@@ -65,6 +65,22 @@ const SecurityPage = lazy(() =>
   })),
 )
 
+const ForgotPasswordPage = lazy(() =>
+  import('@/features/auth/account-recovery-pages').then((module) => ({
+    default: module.ForgotPasswordPage,
+  })),
+)
+const ResetPasswordPage = lazy(() =>
+  import('@/features/auth/account-recovery-pages').then((module) => ({
+    default: module.ResetPasswordPage,
+  })),
+)
+const VerifyEmailPage = lazy(() =>
+  import('@/features/auth/account-recovery-pages').then((module) => ({
+    default: module.VerifyEmailPage,
+  })),
+)
+
 function Deferred({ children }: PropsWithChildren) {
   return <Suspense fallback={<PageSkeleton />}>{children}</Suspense>
 }
@@ -72,6 +88,31 @@ function Deferred({ children }: PropsWithChildren) {
 export function AppRoutes() {
   return (
     <Routes>
+      <Route
+        path="/forgot-password"
+        element={
+          <Deferred>
+            <ForgotPasswordPage />
+          </Deferred>
+        }
+      />
+      <Route
+        path="/reset-password"
+        element={
+          <Deferred>
+            <ResetPasswordPage />
+          </Deferred>
+        }
+      />
+      <Route
+        path="/verify-email"
+        element={
+          <Deferred>
+            <VerifyEmailPage />
+          </Deferred>
+        }
+      />
+
       <Route element={<RequireGuest />}>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
